@@ -31,7 +31,7 @@ export function FlashDesignsPreview() {
         </div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.4 }} className="text-center mt-12">
-          <a href="#" className="inline-block px-8 py-4 bg-secondary text-secondary-foreground font-sans text-lg tracking-widest uppercase transition-all duration-300 hover:bg-secondary/90 hover:shadow-[0_0_15px_oklch(0.55_0.12_85/0.3)]">
+          <a href="/flash" className="inline-block px-8 py-4 bg-secondary text-secondary-foreground font-sans text-lg tracking-widest uppercase transition-all duration-300 hover:bg-secondary/90 hover:shadow-[0_0_15px_oklch(0.55_0.12_85/0.3)]">
             Browse All Flash
           </a>
         </motion.div>
