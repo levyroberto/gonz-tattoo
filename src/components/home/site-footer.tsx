@@ -1,6 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
+import Link from "next/link"
 
 import { navLinks } from "@/data/site-content"
 
@@ -19,9 +20,9 @@ export function SiteFooter() {
 
           <nav className="flex flex-wrap justify-center gap-6">
             {navLinks.map((link) => (
-              <a key={link.href} href={link.href} className="text-muted-foreground hover:text-foreground font-sans tracking-wider text-sm uppercase transition-colors">
+              <Link key={link.href} href={link.href} className="text-muted-foreground hover:text-foreground font-sans tracking-wider text-sm uppercase transition-colors">
                 {link.label}
-              </a>
+              </Link>
             ))}
           </nav>
 

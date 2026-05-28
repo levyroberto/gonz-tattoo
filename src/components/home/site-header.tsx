@@ -21,13 +21,13 @@ export function SiteHeader() {
 
             <nav className="hidden md:flex items-center gap-8">
               {navLinks.map((link) => (
-                <a key={link.href} href={link.href} className="text-muted-foreground hover:text-foreground font-sans tracking-widest text-sm uppercase transition-colors">
+                <Link key={link.href} href={link.href} className="text-muted-foreground hover:text-foreground font-sans tracking-widest text-sm uppercase transition-colors">
                   {link.label}
-                </a>
+                </Link>
               ))}
-              <a href="#contact" className="px-6 py-2 bg-primary text-primary-foreground font-sans text-sm tracking-widest uppercase hover:bg-primary/90 transition-colors">
+              <Link href="/#contact" className="px-6 py-2 bg-primary text-primary-foreground font-sans text-sm tracking-widest uppercase hover:bg-primary/90 transition-colors">
                 Book Now
-              </a>
+              </Link>
             </nav>
 
             <button onClick={() => setIsOpen(!isOpen)} className="md:hidden w-10 h-10 flex flex-col items-center justify-center gap-1.5" aria-label="Toggle menu">
@@ -44,13 +44,13 @@ export function SiteHeader() {
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="md:hidden bg-background border-b border-border overflow-hidden">
             <nav className="container mx-auto px-4 py-6 flex flex-col gap-4">
               {navLinks.map((link) => (
-                <a key={link.href} href={link.href} onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground font-sans tracking-widest text-lg uppercase transition-colors py-2">
+                <Link key={link.href} href={link.href} onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground font-sans tracking-widest text-lg uppercase transition-colors py-2">
                   {link.label}
-                </a>
+                </Link>
               ))}
-              <a href="#contact" onClick={() => setIsOpen(false)} className="px-6 py-3 bg-primary text-primary-foreground font-sans text-lg tracking-widest uppercase text-center hover:bg-primary/90 transition-colors mt-2">
+              <Link href="/#contact" onClick={() => setIsOpen(false)} className="px-6 py-3 bg-primary text-primary-foreground font-sans text-lg tracking-widest uppercase text-center hover:bg-primary/90 transition-colors mt-2">
                 Book Now
-              </a>
+              </Link>
             </nav>
           </motion.div>
         )}
