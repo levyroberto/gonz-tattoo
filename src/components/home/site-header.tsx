@@ -25,7 +25,7 @@ export function SiteHeader() {
                   {link.label}
                 </Link>
               ))}
-              <Link href="/#contact" className="px-6 py-2 bg-primary text-primary-foreground font-sans text-sm tracking-widest uppercase hover:bg-primary/90 transition-colors">
+              <Link href="/contact" className="px-6 py-2 bg-primary text-primary-foreground font-sans text-sm tracking-widest uppercase hover:bg-primary/90 transition-colors">
                 Book Now
               </Link>
             </nav>
@@ -48,7 +48,7 @@ export function SiteHeader() {
                   {link.label}
                 </Link>
               ))}
-              <Link href="/#contact" onClick={() => setIsOpen(false)} className="px-6 py-3 bg-primary text-primary-foreground font-sans text-lg tracking-widest uppercase text-center hover:bg-primary/90 transition-colors mt-2">
+              <Link href="/contact" onClick={() => setIsOpen(false)} className="px-6 py-3 bg-primary text-primary-foreground font-sans text-lg tracking-widest uppercase text-center hover:bg-primary/90 transition-colors mt-2">
                 Book Now
               </Link>
             </nav>

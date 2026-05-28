@@ -77,7 +77,7 @@ export function FlashDesignCard({ design, index }: FlashDesignCardProps) {
         <div className="flex items-center justify-between gap-4">
           <span className="text-3xl font-sans text-primary">{design.price}</span>
           <a
-            href={isAvailable ? "/#contact" : undefined}
+            href={isAvailable ? "/contact" : undefined}
             aria-disabled={!isAvailable}
             className={`px-5 py-3 text-center font-sans text-sm tracking-widest uppercase transition-all ${styles.cta}`}
           >
