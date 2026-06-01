@@ -14,8 +14,8 @@ const playfairDisplay = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'GONZ TATTOO | Old School Tattoo Artist',
-  description: 'Premium old-school tattoo artistry. Custom designs, traditional flash, and timeless ink. Book your session today.',
+  title: 'GONZ TATTOO | Tatuajes old school',
+  description: 'Tatuajes old school, diseños personalizados y tinta con carácter. Escribí para coordinar tu consulta.',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -42,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${bebasNeue.variable} ${playfairDisplay.variable} bg-background`}>
+    <html lang="es" className={`${bebasNeue.variable} ${playfairDisplay.variable} bg-background`}>
       <body className="font-sans antialiased">
         {children}
       </body>

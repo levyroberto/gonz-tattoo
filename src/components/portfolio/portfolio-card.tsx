@@ -8,9 +8,10 @@ import type { Tattoo } from "@/data/tattoos"
 interface PortfolioCardProps {
   tattoo: Tattoo
   index: number
+  onOpen?: (tattoo: Tattoo) => void
 }
 
-export function PortfolioCard({ tattoo, index }: PortfolioCardProps) {
+export function PortfolioCard({ tattoo, index, onOpen }: PortfolioCardProps) {
   return (
     <motion.article
       initial={{ opacity: 0, y: 30 }}
@@ -19,11 +20,16 @@ export function PortfolioCard({ tattoo, index }: PortfolioCardProps) {
       transition={{ duration: 0.6, delay: index * 0.08 }}
       className="group overflow-hidden vintage-border bg-card"
     >
-      <div className="relative aspect-square overflow-hidden bg-muted/30">
+      <button
+        type="button"
+        aria-label={`Ampliar ${tattoo.title}`}
+        onClick={() => onOpen?.(tattoo)}
+        className="group/image relative block aspect-square w-full overflow-hidden bg-muted/30"
+      >
         <Image src={tattoo.image} alt={tattoo.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
         <div className="absolute top-4 left-4 w-8 h-8 border-l-2 border-t-2 border-primary/50" />
         <div className="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-primary/50" />
-      </div>
+      </button>
 
       <div className="p-5 md:p-6">
         <div className="flex items-start justify-between gap-4">

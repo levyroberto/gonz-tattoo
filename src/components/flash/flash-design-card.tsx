@@ -4,36 +4,45 @@ import { motion } from "framer-motion"
 import Image from "next/image"
 
 import type { FlashDesign } from "@/data/flash-designs"
+import { formatPrice } from "@/lib/format-price"
 
 interface FlashDesignCardProps {
   design: FlashDesign
   index: number
+  onOpen?: (design: FlashDesign) => void
+  whatsappUrl?: string
 }
 
 const statusStyles = {
-  Available: {
+  Disponible: {
     card: "bg-card",
-    image: "opacity-95 group-hover:opacity-100",
     badge: "border-primary bg-primary text-primary-foreground",
     cta: "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-[0_0_20px_oklch(0.45_0.18_25/0.4)]",
   },
-  Reserved: {
+  Reservado: {
     card: "bg-card/80",
-    image: "opacity-70 grayscale-[35%]",
-    badge: "border-secondary/60 bg-secondary/10 text-secondary",
-    cta: "border border-secondary/60 text-secondary hover:bg-secondary hover:text-secondary-foreground",
+    badge: "border-secondary/60 bg-background/80 text-secondary",
   },
-  Claimed: {
+  Reclamado: {
     card: "bg-card/60",
-    image: "opacity-50 grayscale",
-    badge: "border-muted-foreground/50 bg-muted/30 text-muted-foreground",
-    cta: "border border-border text-muted-foreground cursor-not-allowed",
+    badge: "border-muted-foreground/50 bg-background/80 text-muted-foreground",
   },
 }
 
-export function FlashDesignCard({ design, index }: FlashDesignCardProps) {
+const availableCtaClass =
+  "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-[0_0_20px_oklch(0.45_0.18_25/0.4)]"
+
+function buildWhatsappUrl(baseUrl: string, design: FlashDesign) {
+  const separator = baseUrl.includes("?") ? "&" : "?"
+  const message = `Hola Gonzalo, quiero consultar por el diseño "${design.name}" ¿Está disponible?`
+
+  return `${baseUrl}${separator}text=${encodeURIComponent(message)}`
+}
+
+export function FlashDesignCard({ design, index, onOpen, whatsappUrl }: FlashDesignCardProps) {
   const styles = statusStyles[design.status]
-  const isAvailable = design.status === "Available"
+  const isAvailable = design.status === "Disponible"
+  const ctaHref = whatsappUrl ? buildWhatsappUrl(whatsappUrl, design) : "/contact"
 
   return (
     <motion.article
@@ -44,45 +53,50 @@ export function FlashDesignCard({ design, index }: FlashDesignCardProps) {
       className={`group relative overflow-hidden vintage-border paper-texture ${styles.card}`}
     >
       <div className="absolute top-3 right-3 z-10 text-muted-foreground/50 font-sans text-xs tracking-widest">
-        FLASH #{String(design.id).padStart(2, "0")}
+        DISEÑO #{String(design.id).padStart(2, "0")}
       </div>
 
-      <div className="relative aspect-square overflow-hidden bg-muted/20">
-        <Image src={design.image} alt={design.name} fill className={`object-cover transition-all duration-500 group-hover:scale-105 ${styles.image}`} />
-        {!isAvailable ? <div className="absolute inset-0 bg-background/20" /> : null}
-      </div>
+      <button
+        type="button"
+        aria-label={`Ampliar ${design.name}`}
+        onClick={() => onOpen?.(design)}
+        className="relative block aspect-square w-full overflow-hidden bg-muted/20 text-left"
+      >
+        <Image src={design.image} alt={design.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
+        <span className={`absolute bottom-4 right-4 border px-3 py-1 text-xs font-sans tracking-widest uppercase ${styles.badge}`}>
+          {design.status}
+        </span>
+      </button>
 
       <div className="space-y-5 p-5 md:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-3xl font-sans tracking-wider text-foreground">{design.name}</h2>
-            <p className="mt-1 text-secondary font-serif italic">{design.style}</p>
-          </div>
-          <span className={`shrink-0 border px-3 py-1 text-xs font-sans tracking-widest uppercase ${styles.badge}`}>
-            {design.status}
-          </span>
+        <div>
+          <h2 className="text-3xl font-sans tracking-wider text-foreground">{design.name}</h2>
+          <p className="mt-1 text-secondary font-serif italic">{design.style}</p>
         </div>
 
         <dl className="grid grid-cols-1 gap-3 border-y border-border py-4 text-sm sm:grid-cols-2">
           <div>
-            <dt className="font-sans tracking-widest text-muted-foreground uppercase">Placement</dt>
+            <dt className="font-sans tracking-widest text-muted-foreground uppercase">Ubicación</dt>
             <dd className="mt-1 font-serif text-foreground">{design.placement}</dd>
           </div>
           <div>
-            <dt className="font-sans tracking-widest text-muted-foreground uppercase">Size</dt>
+            <dt className="font-sans tracking-widest text-muted-foreground uppercase">Tamaño</dt>
             <dd className="mt-1 font-serif text-foreground">{design.size}</dd>
           </div>
         </dl>
 
         <div className="flex items-center justify-between gap-4">
-          <span className="text-3xl font-sans text-primary">{design.price}</span>
-          <a
-            href={isAvailable ? "/contact" : undefined}
-            aria-disabled={!isAvailable}
-            className={`px-5 py-3 text-center font-sans text-sm tracking-widest uppercase transition-all ${styles.cta}`}
-          >
-            {isAvailable ? "Claim Design" : design.status}
-          </a>
+          <span className="text-3xl font-sans text-primary">{formatPrice(design.price)}</span>
+          {isAvailable ? (
+            <a
+              href={ctaHref}
+              target={whatsappUrl ? "_blank" : undefined}
+              rel={whatsappUrl ? "noopener noreferrer" : undefined}
+              className={`px-5 py-3 text-center font-sans text-sm tracking-widest uppercase transition-all ${availableCtaClass}`}
+            >
+              Consultar diseño
+            </a>
+          ) : null}
         </div>
       </div>
     </motion.article>
