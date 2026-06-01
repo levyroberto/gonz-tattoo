@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 
 import type { FlashDesign } from "@/data/flash-designs"
 import type { FlashPreviewSectionContent, FlashPreviewSectionLayout, FlashPreviewSectionStyle } from "@/data/home-sections"
+import { normalizeInternalLink } from "@/lib/internal-links"
 
 import { FlashCard } from "./flash-card"
 
@@ -61,7 +62,7 @@ export function FlashDesignsPreview({ designs, content, layout, style }: FlashDe
 
         {hasButton && (
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.4 }} className="text-center mt-12">
-            <a href={content.buttonHref} className="inline-block px-8 py-4 bg-secondary text-secondary-foreground font-sans text-lg tracking-widest uppercase transition-all duration-300 hover:bg-secondary/90 hover:shadow-[0_0_15px_oklch(0.55_0.12_85/0.3)]">
+            <a href={normalizeInternalLink(content.buttonHref)} className="inline-block px-8 py-4 bg-secondary text-secondary-foreground font-sans text-lg tracking-widest uppercase transition-all duration-300 hover:bg-secondary/90 hover:shadow-[0_0_15px_oklch(0.55_0.12_85/0.3)]">
               {content.buttonLabel}
             </a>
           </motion.div>

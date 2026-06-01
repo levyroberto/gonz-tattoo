@@ -90,7 +90,13 @@ values
       "title": "",
       "highlightedTitle": "",
       "buttonLabel": "",
-      "buttonHref": ""
+      "buttonHref": "",
+      "dateFrom": "",
+      "dateTo": "",
+      "featuredOnly": true,
+      "filterStyle": "",
+      "filterTags": "",
+      "limit": 4
     }'::jsonb,
     '{"variant": "carousel"}'::jsonb,
     '{"background": "card"}'::jsonb,
@@ -107,7 +113,10 @@ values
       "highlightedTitle": "",
       "description": "",
       "buttonLabel": "",
-      "buttonHref": ""
+      "buttonHref": "",
+      "filterStyle": "",
+      "filterTags": "",
+      "limit": 6
     }'::jsonb,
     '{"columnsDesktop": 3, "columnsMobile": 2}'::jsonb,
     '{"background": "default", "frame": "paper"}'::jsonb,

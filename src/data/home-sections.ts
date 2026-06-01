@@ -34,6 +34,12 @@ export type FeaturedPortfolioSectionContent = {
   highlightedTitle: string
   buttonLabel: string
   buttonHref: string
+  dateFrom: string
+  dateTo: string
+  featuredOnly: boolean
+  filterStyle: string
+  filterTags: string
+  limit: number
 }
 
 export type FeaturedPortfolioSectionLayout = {
@@ -50,6 +56,9 @@ export type FlashPreviewSectionContent = {
   description: string
   buttonLabel: string
   buttonHref: string
+  filterStyle: string
+  filterTags: string
+  limit: number
 }
 
 export type FlashPreviewSectionLayout = {
@@ -119,6 +128,8 @@ export type HomeSection =
   | AboutHomeSection
   | ContactCtaHomeSection
 
+export type HomeSectionType = HomeSection["type"]
+
 export const aboutSectionDefaults: Pick<AboutHomeSection, "content" | "layout" | "style"> = {
   content: {
     title: "",
@@ -174,6 +185,12 @@ export const homeSections: HomeSection[] = [
       highlightedTitle: "",
       buttonLabel: "",
       buttonHref: "",
+      dateFrom: "",
+      dateTo: "",
+      featuredOnly: true,
+      filterStyle: "",
+      filterTags: "",
+      limit: 4,
     },
     layout: {
       variant: "carousel",
@@ -193,6 +210,9 @@ export const homeSections: HomeSection[] = [
       description: "",
       buttonLabel: "",
       buttonHref: "",
+      filterStyle: "",
+      filterTags: "",
+      limit: 6,
     },
     layout: {
       columnsDesktop: 3,
@@ -240,6 +260,10 @@ export function getHomeSectionsFallback() {
 
 export function getHomeSectionFallback(sectionId: string) {
   return homeSections.find((section) => section.id === sectionId)
+}
+
+export function getHomeSectionTemplate(sectionType: HomeSectionType) {
+  return homeSections.find((section) => section.type === sectionType)
 }
 
 export function getEnabledHomeSections(sections: HomeSection[] = homeSections) {

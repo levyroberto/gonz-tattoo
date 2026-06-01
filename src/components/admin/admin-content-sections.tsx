@@ -76,8 +76,10 @@ export function AdminContentSections({ flashItems, portfolioItems, tattooStyles 
           <AdminActionForm action={createPortfolioItem} className="grid gap-3" onSuccess={addPortfolioItem} resetOnSuccess>
             <input className={fieldClass} name="title" placeholder="Título" required />
             <TattooStyleSelect className={fieldClass} styles={tattooStyleNames} />
+            <input className={fieldClass} name="published_date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
             <ImageInput />
             <textarea className={tallFieldClass} name="description" placeholder="Descripción" />
+            <input className={fieldClass} name="tags" placeholder="Tags separados por coma: dragon, abril, boca" />
             <div className="grid gap-3 sm:grid-cols-2">
               <ActiveToggle defaultChecked label="Destacado" name="is_featured" />
               <ActiveToggle />
@@ -111,10 +113,8 @@ export function AdminContentSections({ flashItems, portfolioItems, tattooStyles 
               <input className={fieldClass} name="style" placeholder="Estilo" required />
             </div>
             <ImageInput />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <input className={fieldClass} name="placement" placeholder="Ubicación sugerida" required />
-              <input className={fieldClass} name="size" placeholder="Tamaño" required />
-            </div>
+            <input className={fieldClass} name="tags" placeholder="Tags separados por coma: dragon, flash, tradicional" />
+            <input className={fieldClass} name="size" placeholder="Tamaño" required />
             <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
               <select className={fieldClass} name="status" defaultValue="Disponible">
                 <option value="Disponible">Disponible</option>

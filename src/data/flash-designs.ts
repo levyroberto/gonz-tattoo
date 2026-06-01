@@ -5,8 +5,8 @@ export interface FlashDesign {
   image: string
   status: "Disponible" | "Reservado" | "Reclamado"
   style: string
-  placement: string
   size: string
   displayOrder?: number
   isActive?: boolean
+  tags?: string[]
 }
