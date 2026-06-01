@@ -14,11 +14,7 @@ export function TattooStyleSelect({ className, defaultValue = "", styles, requir
 
   return (
     <select className={className} name="style" defaultValue={defaultValue} required={required}>
-      {!defaultValue && (
-        <option value="" disabled>
-          {options.length > 0 ? "Estilo" : "Cargá estilos en Supabase"}
-        </option>
-      )}
+      <option value="">Sin estilo</option>
       {options.map((style) => (
         <option key={style} value={style}>
           {style}

@@ -99,7 +99,7 @@ export function AdminContentSections({ flashItems, portfolioItems, tattooStyles 
       return
     }
 
-    setLocalPortfolioItems((currentItems) => [...currentItems, item])
+    setLocalPortfolioItems((currentItems) => [item, ...currentItems])
   }
 
   function addFlashItem(_formData: FormData, result?: AdminActionResult | void) {
@@ -109,7 +109,7 @@ export function AdminContentSections({ flashItems, portfolioItems, tattooStyles 
       return
     }
 
-    setLocalFlashItems((currentItems) => [...currentItems, item])
+    setLocalFlashItems((currentItems) => [item, ...currentItems])
   }
 
   return (
@@ -149,7 +149,7 @@ export function AdminContentSections({ flashItems, portfolioItems, tattooStyles 
               <input className={fieldClass} name="tags" placeholder="Separados por coma: dragon, abril, boca" />
             </LabeledField>
             <div className="grid gap-3 sm:grid-cols-2">
-              <ActiveToggle defaultChecked label="Destacado" name="is_featured" />
+              <ActiveToggle defaultChecked={false} label="Destacado" name="is_featured" />
               <ActiveToggle />
             </div>
             <Button type="submit">Crear tatuaje</Button>

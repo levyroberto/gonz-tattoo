@@ -15,7 +15,7 @@ type PortfolioGalleryProps = {
 }
 
 export function PortfolioGallery({ tattoos }: PortfolioGalleryProps) {
-  const categories = ["Todo", ...Array.from(new Set(tattoos.map((tattoo) => tattoo.style)))]
+  const categories = ["Todo", ...Array.from(new Set(tattoos.map((tattoo) => tattoo.style?.trim()).filter((style): style is string => Boolean(style))))]
   const [selectedTattoo, setSelectedTattoo] = useState<Tattoo | null>(null)
   const canOpenLightbox = useLightboxOpenGuard()
   const pathname = usePathname()

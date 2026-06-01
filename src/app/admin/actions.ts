@@ -21,6 +21,19 @@ type ImageUploadResult =
       error: string
     }
 
+type PortfolioActionRow = {
+  id: number
+  title: string
+  style: string
+  image_url: string
+  description: string | null
+  display_order?: number | null
+  is_active?: boolean | null
+  is_featured?: boolean | null
+  published_date?: string
+  tags?: string[]
+}
+
 function revalidatePublicContent() {
   revalidatePath("/")
   revalidatePath("/trabajos")
@@ -65,6 +78,25 @@ function getPublishedDate(value: FormDataEntryValue | null) {
   const rawDate = String(value ?? "").trim()
 
   return /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : new Date().toISOString().slice(0, 10)
+}
+
+function isMissingPortfolioMetadataError(error: { message: string } | null) {
+  return Boolean(error?.message.includes("published_date") || error?.message.includes("tags"))
+}
+
+function mapPortfolioItem(data: PortfolioActionRow, fallback?: { publishedDate?: string; tags?: string[] }) {
+  return {
+    id: data.id,
+    title: data.title,
+    style: data.style,
+    image: data.image_url,
+    description: data.description ?? undefined,
+    displayOrder: data.display_order ?? undefined,
+    isActive: data.is_active ?? true,
+    isFeatured: data.is_featured ?? false,
+    publishedDate: data.published_date ?? fallback?.publishedDate,
+    tags: data.tags ?? fallback?.tags ?? [],
+  }
 }
 
 function normalizeInstagramUrl(value: FormDataEntryValue | null) {
@@ -138,40 +170,6 @@ async function resolveImageUrl(
   return { ok: true, imageUrl: data.publicUrl }
 }
 
-async function getNextPortfolioDisplayOrder() {
-  const supabase = await createSupabaseAuthServerClient()
-
-  if (!supabase) {
-    return 1
-  }
-
-  const { data } = await supabase
-    .from("portfolio_items")
-    .select("display_order")
-    .order("display_order", { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  return Number(data?.display_order ?? 0) + 1
-}
-
-async function getNextFlashDisplayOrder() {
-  const supabase = await createSupabaseAuthServerClient()
-
-  if (!supabase) {
-    return 1
-  }
-
-  const { data } = await supabase
-    .from("flash_designs")
-    .select("display_order")
-    .order("display_order", { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  return Number(data?.display_order ?? 0) + 1
-}
-
 export async function loginAdmin(formData: FormData) {
   const supabase = await createSupabaseAuthServerClient()
   const email = String(formData.get("email") ?? "")
@@ -242,7 +240,6 @@ export async function createPortfolioItem(formData: FormData) {
     redirect("/admin/login?error=config")
   }
 
-  const displayOrder = await getNextPortfolioDisplayOrder()
   const image = await resolveImageUrl(supabase, formData, "portfolio")
 
   if (!image.ok) {
@@ -253,42 +250,85 @@ export async function createPortfolioItem(formData: FormData) {
     return { ok: false, error: "portfolio-create: falta imagen" }
   }
 
-  const { data, error } = await supabase
+  const { error: shiftError } = await supabase.rpc("shift_portfolio_display_order")
+
+  if (shiftError) {
+    console.error("Portfolio order shift failed:", shiftError.message)
+    const { data: orderedItems, error: orderFetchError } = await supabase
+      .from("portfolio_items")
+      .select("id, display_order")
+      .order("display_order", { ascending: false })
+      .order("id", { ascending: false })
+
+    if (orderFetchError) {
+      console.error("Portfolio order fallback fetch failed:", orderFetchError.message)
+      return { ok: false, error: "portfolio-create: no se pudo ordenar" }
+    }
+
+    const orderUpdates = await Promise.all(
+      (orderedItems ?? []).map((item) =>
+        supabase
+          .from("portfolio_items")
+          .update({ display_order: Number(item.display_order ?? 0) + 1 })
+          .eq("id", item.id)
+      )
+    )
+    const orderUpdateError = orderUpdates.find((result) => result.error)?.error
+
+    if (orderUpdateError) {
+      console.error("Portfolio order fallback update failed:", orderUpdateError.message)
+      return { ok: false, error: "portfolio-create: no se pudo ordenar" }
+    }
+  }
+
+  const publishedDate = getPublishedDate(formData.get("published_date"))
+  const tags = parseTags(formData.get("tags"))
+  const portfolioPayload = {
+    title: String(formData.get("title") ?? ""),
+    style: String(formData.get("style") ?? ""),
+    image_url: image.imageUrl,
+    description: String(formData.get("description") ?? "") || null,
+    is_featured: formData.get("is_featured") === "on",
+    is_active: formData.get("is_active") === "on",
+    display_order: 1,
+  }
+
+  const portfolioInsert = await supabase
     .from("portfolio_items")
     .insert({
-      title: String(formData.get("title") ?? ""),
-      style: String(formData.get("style") ?? ""),
-      image_url: image.imageUrl,
-      description: String(formData.get("description") ?? "") || null,
-      is_featured: formData.get("is_featured") === "on",
-      is_active: formData.get("is_active") === "on",
-      display_order: displayOrder,
-      published_date: getPublishedDate(formData.get("published_date")),
-      tags: parseTags(formData.get("tags")),
+      ...portfolioPayload,
+      published_date: publishedDate,
+      tags,
     })
     .select("id,title,style,image_url,description,display_order,is_active,is_featured,published_date,tags")
     .single()
+  let data: PortfolioActionRow | null = portfolioInsert.data
+  let error = portfolioInsert.error
+
+  if (isMissingPortfolioMetadataError(error)) {
+    const legacyInsert = await supabase
+      .from("portfolio_items")
+      .insert(portfolioPayload)
+      .select("id,title,style,image_url,description,display_order,is_active,is_featured")
+      .single()
+
+    data = legacyInsert.data
+    error = legacyInsert.error
+  }
 
   if (error) {
     console.error("Portfolio create failed:", error.message)
     return { ok: false, error: "portfolio-create" }
   }
 
+  if (!data) {
+    return { ok: false, error: "portfolio-create: sin datos" }
+  }
+
   revalidatePublicContent()
   return {
     ok: true,
-    item: {
-      id: data.id,
-      title: data.title,
-      style: data.style,
-      image: data.image_url,
-      description: data.description ?? undefined,
-      displayOrder: data.display_order ?? undefined,
-      isActive: data.is_active ?? true,
-      isFeatured: data.is_featured ?? false,
-      publishedDate: data.published_date,
-      tags: data.tags ?? [],
-    },
+    item: mapPortfolioItem(data, { publishedDate, tags }),
   }
 }
 
@@ -317,7 +357,6 @@ export async function createFlashDesign(formData: FormData) {
     redirect("/admin/login?error=config")
   }
 
-  const displayOrder = await getNextFlashDisplayOrder()
   const image = await resolveImageUrl(supabase, formData, "flash")
   const price = parsePrice(formData.get("price")) ?? 0
 
@@ -327,6 +366,37 @@ export async function createFlashDesign(formData: FormData) {
 
   if (!image.imageUrl) {
     return { ok: false, error: "flash-create: falta imagen" }
+  }
+
+  const { error: shiftError } = await supabase.rpc("shift_flash_display_order")
+
+  if (shiftError) {
+    console.error("Flash order shift failed:", shiftError.message)
+    const { data: orderedItems, error: orderFetchError } = await supabase
+      .from("flash_designs")
+      .select("id, display_order")
+      .order("display_order", { ascending: false })
+      .order("id", { ascending: false })
+
+    if (orderFetchError) {
+      console.error("Flash order fallback fetch failed:", orderFetchError.message)
+      return { ok: false, error: "flash-create: no se pudo ordenar" }
+    }
+
+    const orderUpdates = await Promise.all(
+      (orderedItems ?? []).map((item) =>
+        supabase
+          .from("flash_designs")
+          .update({ display_order: Number(item.display_order ?? 0) + 1 })
+          .eq("id", item.id)
+      )
+    )
+    const orderUpdateError = orderUpdates.find((result) => result.error)?.error
+
+    if (orderUpdateError) {
+      console.error("Flash order fallback update failed:", orderUpdateError.message)
+      return { ok: false, error: "flash-create: no se pudo ordenar" }
+    }
   }
 
   const { data, error } = await supabase
@@ -339,7 +409,7 @@ export async function createFlashDesign(formData: FormData) {
       style: String(formData.get("style") ?? ""),
       size: String(formData.get("size") ?? ""),
       is_active: formData.get("is_active") === "on",
-      display_order: displayOrder,
+      display_order: 1,
       tags: parseTags(formData.get("tags")),
     })
     .select("id,name,price,image_url,status,style,size,display_order,is_active,tags")
@@ -405,42 +475,55 @@ export async function updatePortfolioItem(formData: FormData) {
     return { ok: false, error: "portfolio-update: falta imagen" }
   }
 
-  const { data, error } = await supabase
+  const publishedDate = getPublishedDate(formData.get("published_date"))
+  const tags = parseTags(formData.get("tags"))
+  const portfolioPayload = {
+    title: String(formData.get("title") ?? ""),
+    style: String(formData.get("style") ?? ""),
+    image_url: image.imageUrl,
+    description: String(formData.get("description") ?? "") || null,
+    is_featured: formData.get("is_featured") === "on",
+    is_active: formData.get("is_active") === "on",
+  }
+
+  const portfolioUpdate = await supabase
     .from("portfolio_items")
     .update({
-      title: String(formData.get("title") ?? ""),
-      style: String(formData.get("style") ?? ""),
-      image_url: image.imageUrl,
-      description: String(formData.get("description") ?? "") || null,
-      is_featured: formData.get("is_featured") === "on",
-      is_active: formData.get("is_active") === "on",
-      published_date: getPublishedDate(formData.get("published_date")),
-      tags: parseTags(formData.get("tags")),
+      ...portfolioPayload,
+      published_date: publishedDate,
+      tags,
     })
     .eq("id", id)
     .select("id,title,style,image_url,description,display_order,is_active,is_featured,published_date,tags")
     .single()
+  let data: PortfolioActionRow | null = portfolioUpdate.data
+  let error = portfolioUpdate.error
+
+  if (isMissingPortfolioMetadataError(error)) {
+    const legacyUpdate = await supabase
+      .from("portfolio_items")
+      .update(portfolioPayload)
+      .eq("id", id)
+      .select("id,title,style,image_url,description,display_order,is_active,is_featured")
+      .single()
+
+    data = legacyUpdate.data
+    error = legacyUpdate.error
+  }
 
   if (error) {
     console.error("Portfolio update failed:", error.message)
     return { ok: false, error: `portfolio-update: ${error.message}` }
   }
 
+  if (!data) {
+    return { ok: false, error: "portfolio-update: sin datos" }
+  }
+
   revalidatePublicContent()
   return {
     ok: true,
-    item: {
-      id: data.id,
-      title: data.title,
-      style: data.style,
-      image: data.image_url,
-      description: data.description ?? undefined,
-      displayOrder: data.display_order ?? undefined,
-      isActive: data.is_active ?? true,
-      isFeatured: data.is_featured ?? false,
-      publishedDate: data.published_date,
-      tags: data.tags ?? [],
-    },
+    item: mapPortfolioItem(data, { publishedDate, tags }),
   }
 }
 

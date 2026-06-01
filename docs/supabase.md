@@ -46,6 +46,14 @@ Para convertir los precios de flash de texto a enteros, ejecutá:
 supabase/migrations/20260530113500_flash_price_to_integer.sql
 ```
 
+Para que el orden de los tatuajes sea siempre positivo y los nuevos queden primeros, ejecutá:
+
+```txt
+supabase/migrations/20260601140000_portfolio_order_shift.sql
+```
+
+Esta migración normaliza `display_order` a `1..N` y crea la función `shift_portfolio_display_order()` que usa el alta de tatuajes.
+
 ## Configuración del sitio
 
 Crear una fila en `site_settings` con `id = 1`. Esa fila alimenta marca, redes, dirección, horarios y datos básicos del artista.
