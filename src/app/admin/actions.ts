@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
+import { getSectionDefinition, getSectionImageField, parseSectionContentFromForm } from "@/data/home-section-schema"
 import { createSupabaseAuthServerClient } from "@/lib/supabase/server"
 
 const IMAGE_BUCKET = "site-images"
@@ -58,12 +59,6 @@ function parseTags(value: FormDataEntryValue | null) {
     .split(",")
     .map((tag) => tag.trim().toLowerCase())
     .filter(Boolean)
-}
-
-function parsePositiveInteger(value: FormDataEntryValue | null, fallback: number) {
-  const parsedValue = Number(String(value ?? "").trim())
-
-  return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : fallback
 }
 
 function getPublishedDate(value: FormDataEntryValue | null) {
@@ -324,7 +319,7 @@ export async function createFlashDesign(formData: FormData) {
 
   const displayOrder = await getNextFlashDisplayOrder()
   const image = await resolveImageUrl(supabase, formData, "flash")
-  const price = parsePrice(formData.get("price"))
+  const price = parsePrice(formData.get("price")) ?? 0
 
   if (!image.ok) {
     return { ok: false, error: image.error }
@@ -332,10 +327,6 @@ export async function createFlashDesign(formData: FormData) {
 
   if (!image.imageUrl) {
     return { ok: false, error: "flash-create: falta imagen" }
-  }
-
-  if (price === null) {
-    return { ok: false, error: "flash-create: precio inválido" }
   }
 
   const { data, error } = await supabase
@@ -584,64 +575,23 @@ export async function reorderHomeSections(sectionKeys: string[]) {
   return { ok: true }
 }
 
-function getNewHomeSectionDefaults(sectionType: string) {
-  if (sectionType === "featuredPortfolio") {
-    return {
-      content: {
-        eyebrow: "",
-        title: "",
-        highlightedTitle: "",
-        buttonLabel: "",
-        buttonHref: "",
-        dateFrom: "",
-        dateTo: "",
-        featuredOnly: false,
-        filterStyle: "",
-        filterTags: "",
-        limit: 6,
-      },
-      layout: {
-        variant: "carousel",
-      },
-      style: {
-        background: "card",
-      },
-    }
-  }
-
-  if (sectionType === "flashPreview") {
-    return {
-      content: {
-        eyebrow: "",
-        highlightedTitle: "",
-        description: "",
-        buttonLabel: "",
-        buttonHref: "",
-        filterStyle: "",
-        filterTags: "",
-        limit: 6,
-      },
-      layout: {
-        columnsDesktop: 3,
-        columnsMobile: 2,
-      },
-      style: {
-        background: "default",
-        frame: "paper",
-      },
-    }
-  }
-
-  return null
-}
-
 export async function createHomeSection(formData: FormData) {
   const supabase = await createSupabaseAuthServerClient()
   const sectionType = String(formData.get("type") ?? "")
-  const defaults = getNewHomeSectionDefaults(sectionType)
+  const definition = getSectionDefinition(sectionType)
 
-  if (!supabase || !defaults) {
+  if (!supabase || !definition || !definition.creatable) {
     return { ok: false, error: "home-section-create" }
+  }
+
+  const title = getRequiredString(formData, "title")
+  const titleFieldKey = definition.titleFields[0]
+  const defaults = {
+    ...definition.defaults,
+    content: {
+      ...definition.defaults.content,
+      ...(titleFieldKey && title ? { [titleFieldKey]: title } : {}),
+    },
   }
 
   const displayOrder = await getNextHomeSectionDisplayOrder()
@@ -651,7 +601,7 @@ export async function createHomeSection(formData: FormData) {
     page_key: "home",
     section_key: sectionKey,
     type: sectionType,
-    enabled: true,
+    enabled: false,
     display_order: displayOrder,
     content: defaults.content,
     layout: defaults.layout,
@@ -672,122 +622,86 @@ export async function createHomeSection(formData: FormData) {
     item: {
       id: sectionKey,
       type: sectionType,
-      enabled: true,
+      enabled: false,
       order: displayOrder,
       ...defaults,
     },
   }
 }
 
+export async function deleteHomeSection(formData: FormData) {
+  const supabase = await createSupabaseAuthServerClient()
+  const sectionKey = String(formData.get("section_key") ?? "")
+
+  if (!supabase || !sectionKey) {
+    return { ok: false, error: "home-section-delete" }
+  }
+
+  const { error } = await supabase
+    .from("site_sections")
+    .delete()
+    .eq("page_key", "home")
+    .eq("section_key", sectionKey)
+
+  if (error) {
+    console.error("Home section delete failed:", error.message)
+    return { ok: false, error: `home-section-delete: ${error.message}` }
+  }
+
+  revalidatePath("/")
+  revalidatePath("/admin")
+
+  return { ok: true }
+}
+
 function getRequiredString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim()
 }
 
-function parseParagraphs(value: FormDataEntryValue | null) {
-  return String(value ?? "")
-    .split("\n")
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean)
-}
-
 function getHomeSectionContentFromForm(formData: FormData) {
   const sectionType = String(formData.get("type") ?? "")
+  const definition = getSectionDefinition(sectionType)
 
-  switch (sectionType) {
-    case "hero":
-      return {
-        eyebrow: getRequiredString(formData, "eyebrow"),
-        brandPrimary: getRequiredString(formData, "brand_primary"),
-        brandAccent: getRequiredString(formData, "brand_accent"),
-        description: getRequiredString(formData, "description"),
-        primaryButtonLabel: getRequiredString(formData, "primary_button_label"),
-        primaryButtonHref: getRequiredString(formData, "primary_button_href"),
-        secondaryButtonLabel: getRequiredString(formData, "secondary_button_label"),
-        secondaryButtonHref: getRequiredString(formData, "secondary_button_href"),
-      }
-    case "featuredPortfolio":
-      return {
-        eyebrow: getRequiredString(formData, "eyebrow"),
-        title: getRequiredString(formData, "title"),
-        highlightedTitle: getRequiredString(formData, "highlighted_title"),
-        buttonLabel: getRequiredString(formData, "button_label"),
-        buttonHref: getRequiredString(formData, "button_href"),
-        dateFrom: getRequiredString(formData, "date_from"),
-        dateTo: getRequiredString(formData, "date_to"),
-        featuredOnly: formData.get("featured_only") === "on",
-        filterStyle: getRequiredString(formData, "filter_style"),
-        filterTags: getRequiredString(formData, "filter_tags"),
-        limit: parsePositiveInteger(formData.get("limit"), 4),
-      }
-    case "flashPreview":
-      return {
-        eyebrow: getRequiredString(formData, "eyebrow"),
-        highlightedTitle: getRequiredString(formData, "highlighted_title"),
-        description: getRequiredString(formData, "description"),
-        buttonLabel: getRequiredString(formData, "button_label"),
-        buttonHref: getRequiredString(formData, "button_href"),
-        filterStyle: getRequiredString(formData, "filter_style"),
-        filterTags: getRequiredString(formData, "filter_tags"),
-        limit: parsePositiveInteger(formData.get("limit"), 6),
-      }
-    case "about":
-      return {
-        title: getRequiredString(formData, "title"),
-        paragraphs: parseParagraphs(formData.get("paragraphs")),
-        quote: getRequiredString(formData, "quote"),
-        stats: [0, 1, 2].map((index) => ({
-          value: getRequiredString(formData, `stat_value_${index}`),
-          label: getRequiredString(formData, `stat_label_${index}`),
-          tone: getRequiredString(formData, `stat_tone_${index}`),
-        })),
-      }
-    case "contactCta":
-      return {
-        eyebrow: getRequiredString(formData, "eyebrow"),
-        title: getRequiredString(formData, "title"),
-        highlightedTitle: getRequiredString(formData, "highlighted_title"),
-        description: getRequiredString(formData, "description"),
-        whatsappLabel: getRequiredString(formData, "whatsapp_label"),
-        instagramLabel: getRequiredString(formData, "instagram_label"),
-        hoursLabel: getRequiredString(formData, "hours_label"),
-      }
-    default:
-      return null
+  if (!definition) {
+    return null
   }
+
+  return parseSectionContentFromForm(formData, definition)
 }
 
 export async function updateHomeSectionContent(formData: FormData) {
   const supabase = await createSupabaseAuthServerClient()
   const sectionKey = String(formData.get("section_key") ?? "")
   const sectionType = String(formData.get("type") ?? "")
+  const definition = getSectionDefinition(sectionType)
   const content = getHomeSectionContentFromForm(formData)
 
-  if (!supabase || !sectionKey || !content) {
+  if (!supabase || !sectionKey || !definition || !content) {
     return { ok: false, error: "home-section-content" }
   }
 
-  const style = sectionType === "hero" ? await resolveImageUrl(supabase, formData, "hero") : null
+  const imageField = getSectionImageField(definition)
+  let stylePayload: Record<string, unknown> | null = null
 
-  if (style && !style.ok) {
-    return { ok: false, error: style.error }
-  }
+  if (imageField) {
+    const image = await resolveImageUrl(supabase, formData, imageField.imageFolder ?? "hero")
 
-  if (sectionType === "hero" && !style?.imageUrl) {
-    return { ok: false, error: "home-section-content: falta imagen de fondo" }
+    if (!image.ok) {
+      return { ok: false, error: image.error }
+    }
+
+    if (!image.imageUrl) {
+      return { ok: false, error: "home-section-content: falta imagen de fondo" }
+    }
+
+    stylePayload = { ...definition.defaults.style, [imageField.key]: image.imageUrl }
   }
 
   const { error } = await supabase
     .from("site_sections")
     .update({
       content,
-      ...(sectionType === "hero" && style?.imageUrl
-        ? {
-            style: {
-              backgroundImage: style.imageUrl,
-              overlay: "dark",
-            },
-          }
-        : {}),
+      ...(stylePayload ? { style: stylePayload } : {}),
       updated_at: new Date().toISOString(),
     })
     .eq("page_key", "home")
@@ -806,14 +720,7 @@ export async function updateHomeSectionContent(formData: FormData) {
     item: {
       sectionKey,
       content,
-      ...(sectionType === "hero" && style?.imageUrl
-        ? {
-            style: {
-              backgroundImage: style.imageUrl,
-              overlay: "dark",
-            },
-          }
-        : {}),
+      ...(stylePayload ? { style: stylePayload } : {}),
     },
   }
 }
@@ -868,7 +775,7 @@ export async function updateFlashDesign(formData: FormData) {
   }
 
   const image = await resolveImageUrl(supabase, formData, "flash")
-  const price = parsePrice(formData.get("price"))
+  const price = parsePrice(formData.get("price")) ?? 0
 
   if (!image.ok) {
     return { ok: false, error: image.error }
@@ -876,10 +783,6 @@ export async function updateFlashDesign(formData: FormData) {
 
   if (!image.imageUrl) {
     return { ok: false, error: "flash-update: falta imagen" }
-  }
-
-  if (price === null) {
-    return { ok: false, error: "flash-update: precio inválido" }
   }
 
   const updatePayload = {

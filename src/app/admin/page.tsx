@@ -32,12 +32,13 @@ export default async function AdminPage() {
       description: "Diseños cargados",
       icon: ImagePlus,
     },
-    {
+    /*{
       title: "Consultas",
       value: stats.contactRequestCount,
       description: "Pedidos recibidos",
       icon: MessageSquareText,
-    },
+    }, 
+    */
   ]
 
   return (
@@ -70,7 +71,7 @@ export default async function AdminPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           {summaryCards.map((item) => {
             const Icon = item.icon
 
@@ -95,9 +96,9 @@ export default async function AdminPage() {
 
         <HomeSectionsManager
           sections={homeSections}
-          flashPreviewItems={flashItems.filter((item) => item.isActive).slice(0, 3)}
+          flashPreviewItems={flashItems.filter((item) => item.isActive)}
           flashStyles={flashStyleNames}
-          portfolioPreviewItems={portfolioItems.filter((item) => item.isActive && item.isFeatured).slice(0, 3)}
+          portfolioPreviewItems={portfolioItems.filter((item) => item.isActive)}
           tattooStyles={tattooStyleNames}
         />
 

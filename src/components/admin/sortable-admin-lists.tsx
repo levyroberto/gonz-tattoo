@@ -11,9 +11,10 @@ import {
   updateFlashDesign,
   updatePortfolioItem,
 } from "@/app/admin/actions"
-import { AdminActionForm } from "@/components/admin/admin-action-form"
+import { AdminActionForm, FieldError, hasImageValue, type RequiredFieldRule } from "@/components/admin/admin-action-form"
 import { ActiveToggle } from "@/components/admin/active-toggle"
 import { ImageInput } from "@/components/admin/image-input"
+import { LabeledField } from "@/components/admin/labeled-field"
 import { TattooStyleSelect } from "@/components/admin/tattoo-style-select"
 import { Button } from "@/components/ui/button"
 import type { FlashDesign } from "@/data/flash-designs"
@@ -21,10 +22,35 @@ import type { Tattoo } from "@/data/tattoos"
 import { DeleteButton } from "./delete-button"
 const fieldClass = "h-9 rounded-md border border-border bg-input px-3 text-foreground outline-none focus:border-primary"
 const tallFieldClass = "min-h-20 rounded-md border border-border bg-input px-3 py-2 text-foreground outline-none focus:border-primary"
+const errorIndentClass = "sm:pl-[152px]"
+
+const portfolioRequiredFields: RequiredFieldRule[] = [
+  { name: "title", message: "El título es obligatorio." },
+  { name: "image", message: "La imagen es obligatoria.", check: hasImageValue },
+]
+
+const flashRequiredFields: RequiredFieldRule[] = [
+  { name: "name", message: "El nombre es obligatorio." },
+  { name: "image", message: "La imagen es obligatoria.", check: hasImageValue },
+]
 
 type DropPosition = {
   id: number
   edge: "before" | "after"
+}
+
+export type AdminStatusFilter = "all" | "active" | "inactive"
+
+function matchesStatusFilter(isActive: boolean | undefined, filter: AdminStatusFilter) {
+  if (filter === "active") {
+    return Boolean(isActive)
+  }
+
+  if (filter === "inactive") {
+    return !isActive
+  }
+
+  return true
 }
 
 function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
@@ -141,12 +167,14 @@ type SortablePortfolioListProps = {
   items: Tattoo[]
   onItemsChange: Dispatch<SetStateAction<Tattoo[]>>
   tattooStyles: string[]
+  statusFilter?: AdminStatusFilter
 }
 
 export function SortablePortfolioList({
   items: orderedItems,
   onItemsChange: setOrderedItems,
   tattooStyles,
+  statusFilter = "all",
 }: SortablePortfolioListProps) {
   const [draggedId, setDraggedId] = useState<number | null>(null)
   const [dropPosition, setDropPosition] = useState<DropPosition | null>(null)
@@ -276,10 +304,14 @@ export function SortablePortfolioList({
     persistOrder(nextItems)
   }
 
+  const visibleItems = orderedItems
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => matchesStatusFilter(item.isActive, statusFilter))
+
   return (
     <div className="grid gap-2" aria-busy={isPending}>
       {message && <p className={isError ? "text-sm text-destructive" : "text-sm text-green-500"}>{message}</p>}
-      {orderedItems.map((item, index) => (
+      {visibleItems.map(({ item, index }) => (
         <div
           key={item.id}
           className="grid gap-2"
@@ -348,22 +380,41 @@ export function SortablePortfolioList({
               </div>
             </div>
             {openItemId === item.id && <div className="grid gap-3 border-t border-border p-3">
-              <AdminActionForm action={updatePortfolioItem} className="grid gap-2" onSuccess={updateItemFromForm}>
+              <AdminActionForm action={updatePortfolioItem} className="grid gap-2" onSuccess={updateItemFromForm} requiredFields={portfolioRequiredFields}>
                 <input name="id" type="hidden" value={item.id} />
-                <input className={fieldClass} name="title" defaultValue={item.title} required />
-                <TattooStyleSelect className={fieldClass} defaultValue={item.style} styles={tattooStyles} />
-                <input className={fieldClass} name="published_date" type="date" defaultValue={item.publishedDate ?? new Date().toISOString().slice(0, 10)} />
-                <ImageInput defaultUrl={item.image} />
-                <textarea className={tallFieldClass} name="description" defaultValue={item.description ?? ""} />
-                <input className={fieldClass} name="tags" defaultValue={(item.tags ?? []).join(", ")} placeholder="Tags separados por coma" />
+                <LabeledField label="Título">
+                  <input className={fieldClass} name="title" defaultValue={item.title} />
+                </LabeledField>
+                <FieldError name="title" className={errorIndentClass} />
+                <LabeledField label="Estilo">
+                  <TattooStyleSelect className={fieldClass} defaultValue={item.style} styles={tattooStyles} />
+                </LabeledField>
+                <LabeledField label="Fecha">
+                  <input className={fieldClass} name="published_date" type="date" defaultValue={item.publishedDate ?? new Date().toISOString().slice(0, 10)} />
+                </LabeledField>
+                <LabeledField label="Imagen">
+                  <ImageInput defaultUrl={item.image} />
+                </LabeledField>
+                <FieldError name="image" className={errorIndentClass} />
+                <LabeledField label="Descripción" alignTop>
+                  <textarea className={tallFieldClass} name="description" defaultValue={item.description ?? ""} />
+                </LabeledField>
+                <LabeledField label="Tags">
+                  <input className={fieldClass} name="tags" defaultValue={(item.tags ?? []).join(", ")} placeholder="Separados por coma" />
+                </LabeledField>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap gap-3">
                     <ActiveToggle defaultChecked={item.isFeatured ?? false} label="Destacado" name="is_featured" />
                     <ActiveToggle defaultChecked={item.isActive ?? true} />
                   </div>
-                  <Button type="submit" variant="outline">
-                    Guardar
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" onClick={() => setOpenItemId(null)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" variant="default">
+                      Guardar
+                    </Button>
+                  </div>
                 </div>
               </AdminActionForm>
               <div className="flex justify-end">
@@ -379,6 +430,9 @@ export function SortablePortfolioList({
           {dropPosition?.id === item.id && dropPosition.edge === "after" && <DropPlaceholder tone="primary" />}
         </div>
       ))}
+      {statusFilter !== "all" && visibleItems.length === 0 && (
+        <p className="text-sm text-muted-foreground">No hay tatuajes {statusFilter === "active" ? "activos" : "inactivos"}.</p>
+      )}
     </div>
   )
 }
@@ -386,9 +440,14 @@ export function SortablePortfolioList({
 type SortableFlashListProps = {
   items: FlashDesign[]
   onItemsChange: Dispatch<SetStateAction<FlashDesign[]>>
+  statusFilter?: AdminStatusFilter
 }
 
-export function SortableFlashList({ items: orderedItems, onItemsChange: setOrderedItems }: SortableFlashListProps) {
+export function SortableFlashList({
+  items: orderedItems,
+  onItemsChange: setOrderedItems,
+  statusFilter = "all",
+}: SortableFlashListProps) {
   const [draggedId, setDraggedId] = useState<number | null>(null)
   const [dropPosition, setDropPosition] = useState<DropPosition | null>(null)
   const [openItemId, setOpenItemId] = useState<number | null>(null)
@@ -517,10 +576,14 @@ export function SortableFlashList({ items: orderedItems, onItemsChange: setOrder
     persistOrder(nextItems)
   }
 
+  const visibleItems = orderedItems
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => matchesStatusFilter(item.isActive, statusFilter))
+
   return (
     <div className="grid gap-2" aria-busy={isPending}>
       {message && <p className={isError ? "text-sm text-destructive" : "text-sm text-green-500"}>{message}</p>}
-      {orderedItems.map((item, index) => (
+      {visibleItems.map(({ item, index }) => (
         <div
           key={item.id}
           className="grid gap-2"
@@ -594,27 +657,44 @@ export function SortableFlashList({ items: orderedItems, onItemsChange: setOrder
               </div>
             </div>
             {openItemId === item.id && <div className="grid gap-3 border-t border-border p-3">
-              <AdminActionForm action={updateFlashDesign} className="grid gap-2" onSuccess={updateItemFromForm}>
+              <AdminActionForm action={updateFlashDesign} className="grid gap-2" onSuccess={updateItemFromForm} requiredFields={flashRequiredFields}>
                 <input name="id" type="hidden" value={item.id} />
-                <input className={fieldClass} name="name" defaultValue={item.name} required />
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <input className={fieldClass} name="price" type="number" min="0" step="1" inputMode="numeric" defaultValue={item.price} required />
-                  <input className={fieldClass} name="style" defaultValue={item.style} required />
-                </div>
-                <ImageInput defaultUrl={item.image} />
-                <input className={fieldClass} name="tags" defaultValue={(item.tags ?? []).join(", ")} placeholder="Tags separados por coma" />
-                <input className={fieldClass} name="size" defaultValue={item.size} required />
-                <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <LabeledField label="Nombre">
+                  <input className={fieldClass} name="name" defaultValue={item.name} />
+                </LabeledField>
+                <FieldError name="name" className={errorIndentClass} />
+                <LabeledField label="Precio">
+                  <input className={fieldClass} name="price" type="number" min="0" step="1" inputMode="numeric" defaultValue={item.price} />
+                </LabeledField>
+                <LabeledField label="Estilo">
+                  <input className={fieldClass} name="style" defaultValue={item.style} />
+                </LabeledField>
+                <LabeledField label="Imagen">
+                  <ImageInput defaultUrl={item.image} />
+                </LabeledField>
+                <FieldError name="image" className={errorIndentClass} />
+                <LabeledField label="Tags">
+                  <input className={fieldClass} name="tags" defaultValue={(item.tags ?? []).join(", ")} placeholder="Separados por coma" />
+                </LabeledField>
+                <LabeledField label="Tamaño">
+                  <input className={fieldClass} name="size" defaultValue={item.size} />
+                </LabeledField>
+                <LabeledField label="Estado">
                   <select className={fieldClass} name="status" defaultValue={item.status}>
                     <option value="Disponible">Disponible</option>
                     <option value="Reservado">Reservado</option>
                     <option value="Reclamado">Reclamado</option>
                   </select>
-                  <ActiveToggle defaultChecked={item.isActive ?? true} />
+                </LabeledField>
+                <ActiveToggle defaultChecked={item.isActive ?? true} />
+                <div className="flex items-center justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setOpenItemId(null)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" variant="default">
+                    Guardar
+                  </Button>
                 </div>
-                <Button type="submit" variant="outline">
-                  Guardar
-                </Button>
               </AdminActionForm>
               <div className="flex justify-end">
               <DeleteButton
@@ -629,6 +709,9 @@ export function SortableFlashList({ items: orderedItems, onItemsChange: setOrder
           {dropPosition?.id === item.id && dropPosition.edge === "after" && <DropPlaceholder tone="secondary" />}
         </div>
       ))}
+      {statusFilter !== "all" && visibleItems.length === 0 && (
+        <p className="text-sm text-muted-foreground">No hay diseños {statusFilter === "active" ? "activos" : "inactivos"}.</p>
+      )}
     </div>
   )
 }
