@@ -3,6 +3,8 @@ import { ImagePlus, Images, LogOut, MessageSquareText } from "lucide-react"
 
 import { logoutAdmin } from "@/app/admin/actions"
 import { AdminContentSections } from "@/components/admin/admin-content-sections"
+import { FooterSectionForm } from "@/components/admin/footer-section-form"
+import { HomeSectionsManager } from "@/components/admin/home-sections-manager"
 import { SiteSettingsForm } from "@/components/admin/site-settings-form"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,7 +13,7 @@ import { getAdminDashboardContent } from "@/lib/supabase/content"
 
 export default async function AdminPage() {
   await requireAdmin()
-  const { flashItems, portfolioItems, settings, stats, tattooStyles } = await getAdminDashboardContent()
+  const { flashItems, footer, homeSections, portfolioItems, settings, stats, tattooStyles } = await getAdminDashboardContent()
 
   const summaryCards = [
     {
@@ -86,6 +88,10 @@ export default async function AdminPage() {
         </div>
 
         <SiteSettingsForm settings={settings} />
+
+        <FooterSectionForm footer={footer} />
+
+        <HomeSectionsManager sections={homeSections} />
 
         <AdminContentSections flashItems={flashItems} portfolioItems={portfolioItems} tattooStyles={tattooStyles} />
       </section>

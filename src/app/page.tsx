@@ -1,18 +1,18 @@
 import { HomeSectionRenderer } from "@/components/home/home-section-renderer"
 import { SiteFooter } from "@/components/home/site-footer"
 import { SiteHeader } from "@/components/home/site-header"
-import { getEnabledHomeSections } from "@/data/home-sections"
-import { getFeaturedFlashDesigns, getFeaturedPortfolioItems, getSiteSettings } from "@/lib/supabase/content"
+import { getFeaturedFlashDesigns, getFeaturedPortfolioItems, getGlobalFooterSection, getHomeSections, getSiteSettings } from "@/lib/supabase/content"
 
 export const dynamic = "force-dynamic"
 
 export default async function Home() {
-  const [featuredTattoos, featuredFlashDesigns, settings] = await Promise.all([
+  const [featuredTattoos, featuredFlashDesigns, settings, sections, footer] = await Promise.all([
     getFeaturedPortfolioItems(),
     getFeaturedFlashDesigns(),
     getSiteSettings(),
+    getHomeSections(),
+    getGlobalFooterSection(),
   ])
-  const sections = getEnabledHomeSections()
 
   return (
     <main className="min-h-screen">
@@ -26,7 +26,7 @@ export default async function Home() {
           settings={settings}
         />
       ))}
-      <SiteFooter settings={settings} />
+      <SiteFooter footer={footer} settings={settings} />
     </main>
   )
 }

@@ -23,6 +23,8 @@ const sectionBackgroundClassNames: Record<FeaturedPortfolioSectionStyle["backgro
 }
 
 export function FeaturedTattoos({ tattoos, content, layout, style }: FeaturedTattoosProps) {
+  const hasHeader = Boolean(content.eyebrow || content.title || content.highlightedTitle)
+  const hasButton = Boolean(content.buttonHref && content.buttonLabel)
   const initialIndex = tattoos.length > 0 ? Math.floor(tattoos.length / 2) : 0
   const loopCopyCount = 21
   const centerCopy = Math.floor(loopCopyCount / 2)
@@ -168,12 +170,16 @@ export function FeaturedTattoos({ tattoos, content, layout, style }: FeaturedTat
   return (
     <section id="portfolio" className={`relative py-24 ${sectionBackgroundClassNames[style.background]} grunge-texture`} data-layout={layout.variant}>
       <div className="container mx-auto px-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="text-center mb-16">
-          <span className="text-secondary tracking-[0.3em] text-sm uppercase font-serif">{content.eyebrow}</span>
-          <h2 className="text-5xl md:text-7xl font-sans tracking-wider mt-2 text-foreground">
-            {content.title} <span className="text-primary">{content.highlightedTitle}</span>
-          </h2>
-        </motion.div>
+        {hasHeader && (
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="text-center mb-16">
+            {content.eyebrow && <span className="text-secondary tracking-[0.3em] text-sm uppercase font-serif">{content.eyebrow}</span>}
+            {(content.title || content.highlightedTitle) && (
+              <h2 className="text-5xl md:text-7xl font-sans tracking-wider mt-2 text-foreground">
+                {content.title} <span className="text-primary">{content.highlightedTitle}</span>
+              </h2>
+            )}
+          </motion.div>
+        )}
 
         <div className="mx-auto max-w-5xl">
           <div className="relative">
@@ -246,11 +252,13 @@ export function FeaturedTattoos({ tattoos, content, layout, style }: FeaturedTat
           )}
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.4 }} className="text-center mt-12">
-          <a href={content.buttonHref} className="inline-block px-8 py-4 border-2 border-primary text-primary font-sans text-lg tracking-widest uppercase transition-all duration-300 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_20px_oklch(0.45_0.18_25/0.4)]">
-            {content.buttonLabel}
-          </a>
-        </motion.div>
+        {hasButton && (
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.4 }} className="text-center mt-12">
+            <a href={content.buttonHref} className="inline-block px-8 py-4 border-2 border-primary text-primary font-sans text-lg tracking-widest uppercase transition-all duration-300 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_20px_oklch(0.45_0.18_25/0.4)]">
+              {content.buttonLabel}
+            </a>
+          </motion.div>
+        )}
       </div>
       <TattooImageLightbox tattoo={selectedTattoo} onClose={() => setSelectedTattoo(null)} />
     </section>

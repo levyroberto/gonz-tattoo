@@ -122,15 +122,12 @@ export type HomeSection =
 export const aboutSectionDefaults: Pick<AboutHomeSection, "content" | "layout" | "style"> = {
   content: {
     title: "",
-    paragraphs: [
-      "Trabaja la tradición del tatuaje con líneas firmes, contraste sólido y una mirada personal sobre cada pieza.",
-      "Su base está en el old school y el tradicional: diseños claros, colores con presencia y tatuajes pensados para durar.",
-    ],
-    quote: "La idea es que cada tatuaje tenga fuerza, lectura y carácter propio.",
+    paragraphs: [],
+    quote: "",
     stats: [
-      { value: "+10", label: "Años de experiencia", tone: "primary" },
-      { value: "500+", label: "Diseños personalizados", tone: "secondary" },
-      { value: "15+", label: "Reconocimientos", tone: "accent" },
+      { value: "", label: "", tone: "primary" },
+      { value: "", label: "", tone: "secondary" },
+      { value: "", label: "", tone: "accent" },
     ],
   },
   layout: {
@@ -138,7 +135,7 @@ export const aboutSectionDefaults: Pick<AboutHomeSection, "content" | "layout" |
   },
   style: {
     background: "card",
-    image: "/images/artist/artist-portrait-01.jpg",
+    image: "",
   },
 }
 
@@ -149,20 +146,20 @@ export const homeSections: HomeSection[] = [
     enabled: true,
     order: 10,
     content: {
-      eyebrow: "Desde 1993 • Almagro",
-      brandPrimary: "GONZ",
-      brandAccent: " TATTOO",
-      description: "◾Pro Team support @octopustattoocoloursink",
-      primaryButtonLabel: "Ver mis trabajos",
-      primaryButtonHref: "/trabajos",
-      secondaryButtonLabel: "Diseños",
-      secondaryButtonHref: "/disenos",
+      eyebrow: "",
+      brandPrimary: "",
+      brandAccent: "",
+      description: "",
+      primaryButtonLabel: "",
+      primaryButtonHref: "",
+      secondaryButtonLabel: "",
+      secondaryButtonHref: "",
     },
     layout: {
       imagePositionMode: "rotating-mobile",
     },
     style: {
-      backgroundImage: "/images/hero/hero-card.png",
+      backgroundImage: "",
       overlay: "dark",
     },
   },
@@ -172,11 +169,11 @@ export const homeSections: HomeSection[] = [
     enabled: true,
     order: 20,
     content: {
-      eyebrow: "Trabajos recientes",
-      title: "PIEZAS",
-      highlightedTitle: "DESTACADAS",
-      buttonLabel: "Ver mis trabajos",
-      buttonHref: "/trabajos",
+      eyebrow: "",
+      title: "",
+      highlightedTitle: "",
+      buttonLabel: "",
+      buttonHref: "",
     },
     layout: {
       variant: "carousel",
@@ -191,11 +188,11 @@ export const homeSections: HomeSection[] = [
     enabled: true,
     order: 30,
     content: {
-      eyebrow: "Listos para tatuar",
-      highlightedTitle: "DISEÑOS",
-      description: "Diseños clásicos listos para salir. Elegí tu pieza y llevátela en la piel.",
-      buttonLabel: "Ver todos los diseños",
-      buttonHref: "/disenos",
+      eyebrow: "",
+      highlightedTitle: "",
+      description: "",
+      buttonLabel: "",
+      buttonHref: "",
     },
     layout: {
       columnsDesktop: 3,
@@ -219,13 +216,13 @@ export const homeSections: HomeSection[] = [
     enabled: true,
     order: 50,
     content: {
-      eyebrow: "¿Listo para tatuarte?",
-      title: "CONSULTÁ TU",
-      highlightedTitle: "IDEA",
-      description: "Los diseños se pueden consultar directo. Los trabajos personalizados se coordinan por mensaje.",
-      whatsappLabel: "WhatsApp",
-      instagramLabel: "Instagram",
-      hoursLabel: "Horario:",
+      eyebrow: "",
+      title: "",
+      highlightedTitle: "",
+      description: "",
+      whatsappLabel: "",
+      instagramLabel: "",
+      hoursLabel: "",
     },
     layout: {
       alignment: "center",
@@ -237,8 +234,16 @@ export const homeSections: HomeSection[] = [
   },
 ]
 
-export function getEnabledHomeSections() {
-  return homeSections
+export function getHomeSectionsFallback() {
+  return [...homeSections].toSorted((firstSection, secondSection) => firstSection.order - secondSection.order)
+}
+
+export function getHomeSectionFallback(sectionId: string) {
+  return homeSections.find((section) => section.id === sectionId)
+}
+
+export function getEnabledHomeSections(sections: HomeSection[] = homeSections) {
+  return sections
     .filter((section) => section.enabled)
     .toSorted((firstSection, secondSection) => firstSection.order - secondSection.order)
 }

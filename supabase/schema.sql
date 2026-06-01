@@ -114,7 +114,6 @@ create table if not exists public.contact_requests (
 create table if not exists public.site_settings (
   id integer primary key default 1 check (id = 1),
   brand_name text,
-  footer_tagline text,
   instagram_url text,
   whatsapp_url text,
   studio_address text,
@@ -127,7 +126,6 @@ create table if not exists public.site_settings (
 insert into public.site_settings (
   id,
   brand_name,
-  footer_tagline,
   instagram_url,
   whatsapp_url,
   artist_name,
@@ -136,7 +134,6 @@ insert into public.site_settings (
 values (
   1,
   'GONZ TATTOO',
-  'Tatuajes old school, diseños tradicionales y tinta con carácter.',
   'https://www.instagram.com/gonztattoo',
   'https://wa.link/eodxzz',
   'Gonzalo Regueira',
@@ -145,7 +142,6 @@ values (
 on conflict (id) do update
 set
   brand_name = excluded.brand_name,
-  footer_tagline = excluded.footer_tagline,
   instagram_url = excluded.instagram_url,
   whatsapp_url = excluded.whatsapp_url,
   artist_name = excluded.artist_name,

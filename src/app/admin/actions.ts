@@ -90,7 +90,7 @@ function getImageExtension(file: File) {
 async function resolveImageUrl(
   supabase: NonNullable<Awaited<ReturnType<typeof createSupabaseAuthServerClient>>>,
   formData: FormData,
-  folder: "flash" | "portfolio"
+  folder: "flash" | "hero" | "portfolio"
 ): Promise<ImageUploadResult> {
   const imageFile = formData.get("image_file")
   const imageUrl = String(formData.get("image_url") ?? "").trim()
@@ -198,7 +198,6 @@ export async function updateSiteSettings(formData: FormData) {
     .upsert(
       {
         id: 1,
-        footer_tagline: String(formData.get("footer_tagline") ?? "").trim() || null,
         instagram_url: normalizeInstagramUrl(formData.get("instagram_handle")),
         whatsapp_url: normalizeWhatsappUrl(formData.get("whatsapp_phone")),
         studio_address: String(formData.get("studio_address") ?? "").trim() || null,
@@ -478,6 +477,237 @@ export async function reorderFlashDesigns(itemIds: number[]) {
 
   revalidatePublicContent()
   return { ok: true }
+}
+
+export async function updateHomeSectionEnabled(formData: FormData) {
+  const supabase = await createSupabaseAuthServerClient()
+  const sectionKey = String(formData.get("section_key") ?? "")
+
+  if (!supabase || !sectionKey) {
+    return { ok: false, error: "home-section-toggle" }
+  }
+
+  const { error } = await supabase
+    .from("site_sections")
+    .update({
+      enabled: formData.get("enabled") === "on",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("page_key", "home")
+    .eq("section_key", sectionKey)
+
+  if (error) {
+    console.error("Home section visibility update failed:", error.message)
+    return { ok: false, error: `home-section-toggle: ${error.message}` }
+  }
+
+  revalidatePath("/")
+  revalidatePath("/admin")
+
+  return { ok: true }
+}
+
+export async function reorderHomeSections(sectionKeys: string[]) {
+  const supabase = await createSupabaseAuthServerClient()
+
+  if (!supabase) {
+    return { ok: false, error: "home-section-reorder" }
+  }
+
+  const updates = await Promise.all(
+    sectionKeys.map((sectionKey, index) =>
+      supabase
+        .from("site_sections")
+        .update({
+          display_order: (index + 1) * 10,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("page_key", "home")
+        .eq("section_key", sectionKey)
+    )
+  )
+  const error = updates.find((result) => result.error)?.error
+
+  if (error) {
+    console.error("Home section reorder failed:", error.message)
+    return { ok: false, error: `home-section-reorder: ${error.message}` }
+  }
+
+  revalidatePath("/")
+  revalidatePath("/admin")
+
+  return { ok: true }
+}
+
+function getRequiredString(formData: FormData, key: string) {
+  return String(formData.get(key) ?? "").trim()
+}
+
+function parseParagraphs(value: FormDataEntryValue | null) {
+  return String(value ?? "")
+    .split("\n")
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+}
+
+function getHomeSectionContentFromForm(formData: FormData) {
+  const sectionType = String(formData.get("type") ?? "")
+
+  switch (sectionType) {
+    case "hero":
+      return {
+        eyebrow: getRequiredString(formData, "eyebrow"),
+        brandPrimary: getRequiredString(formData, "brand_primary"),
+        brandAccent: getRequiredString(formData, "brand_accent"),
+        description: getRequiredString(formData, "description"),
+        primaryButtonLabel: getRequiredString(formData, "primary_button_label"),
+        primaryButtonHref: getRequiredString(formData, "primary_button_href"),
+        secondaryButtonLabel: getRequiredString(formData, "secondary_button_label"),
+        secondaryButtonHref: getRequiredString(formData, "secondary_button_href"),
+      }
+    case "featuredPortfolio":
+      return {
+        eyebrow: getRequiredString(formData, "eyebrow"),
+        title: getRequiredString(formData, "title"),
+        highlightedTitle: getRequiredString(formData, "highlighted_title"),
+        buttonLabel: getRequiredString(formData, "button_label"),
+        buttonHref: getRequiredString(formData, "button_href"),
+      }
+    case "flashPreview":
+      return {
+        eyebrow: getRequiredString(formData, "eyebrow"),
+        highlightedTitle: getRequiredString(formData, "highlighted_title"),
+        description: getRequiredString(formData, "description"),
+        buttonLabel: getRequiredString(formData, "button_label"),
+        buttonHref: getRequiredString(formData, "button_href"),
+      }
+    case "about":
+      return {
+        title: getRequiredString(formData, "title"),
+        paragraphs: parseParagraphs(formData.get("paragraphs")),
+        quote: getRequiredString(formData, "quote"),
+        stats: [0, 1, 2].map((index) => ({
+          value: getRequiredString(formData, `stat_value_${index}`),
+          label: getRequiredString(formData, `stat_label_${index}`),
+          tone: getRequiredString(formData, `stat_tone_${index}`),
+        })),
+      }
+    case "contactCta":
+      return {
+        eyebrow: getRequiredString(formData, "eyebrow"),
+        title: getRequiredString(formData, "title"),
+        highlightedTitle: getRequiredString(formData, "highlighted_title"),
+        description: getRequiredString(formData, "description"),
+        whatsappLabel: getRequiredString(formData, "whatsapp_label"),
+        instagramLabel: getRequiredString(formData, "instagram_label"),
+        hoursLabel: getRequiredString(formData, "hours_label"),
+      }
+    default:
+      return null
+  }
+}
+
+export async function updateHomeSectionContent(formData: FormData) {
+  const supabase = await createSupabaseAuthServerClient()
+  const sectionKey = String(formData.get("section_key") ?? "")
+  const sectionType = String(formData.get("type") ?? "")
+  const content = getHomeSectionContentFromForm(formData)
+
+  if (!supabase || !sectionKey || !content) {
+    return { ok: false, error: "home-section-content" }
+  }
+
+  const style = sectionType === "hero" ? await resolveImageUrl(supabase, formData, "hero") : null
+
+  if (style && !style.ok) {
+    return { ok: false, error: style.error }
+  }
+
+  if (sectionType === "hero" && !style?.imageUrl) {
+    return { ok: false, error: "home-section-content: falta imagen de fondo" }
+  }
+
+  const { error } = await supabase
+    .from("site_sections")
+    .update({
+      content,
+      ...(sectionType === "hero" && style?.imageUrl
+        ? {
+            style: {
+              backgroundImage: style.imageUrl,
+              overlay: "dark",
+            },
+          }
+        : {}),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("page_key", "home")
+    .eq("section_key", sectionKey)
+
+  if (error) {
+    console.error("Home section content update failed:", error.message)
+    return { ok: false, error: `home-section-content: ${error.message}` }
+  }
+
+  revalidatePath("/")
+  revalidatePath("/admin")
+
+  return {
+    ok: true,
+    item: {
+      sectionKey,
+      content,
+      ...(sectionType === "hero" && style?.imageUrl
+        ? {
+            style: {
+              backgroundImage: style.imageUrl,
+              overlay: "dark",
+            },
+          }
+        : {}),
+    },
+  }
+}
+
+export async function updateFooterSectionContent(formData: FormData) {
+  const supabase = await createSupabaseAuthServerClient()
+
+  if (!supabase) {
+    return { ok: false, error: "footer-section-content" }
+  }
+
+  const content = {
+    tagline: getRequiredString(formData, "tagline"),
+    legalText: getRequiredString(formData, "legal_text"),
+  }
+
+  const { error } = await supabase
+    .from("site_sections")
+    .update({
+      content,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("page_key", "global")
+    .eq("section_key", "site-footer")
+
+  if (error) {
+    console.error("Footer section content update failed:", error.message)
+    return { ok: false, error: `footer-section-content: ${error.message}` }
+  }
+
+  revalidatePath("/")
+  revalidatePath("/trabajos")
+  revalidatePath("/disenos")
+  revalidatePath("/contact")
+  revalidatePath("/sobre-mi")
+  revalidatePath("/admin")
+
+  return {
+    ok: true,
+    item: {
+      content,
+    },
+  }
 }
 
 export async function updateFlashDesign(formData: FormData) {
