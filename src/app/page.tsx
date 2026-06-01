@@ -1,10 +1,7 @@
-import { AboutSection } from "@/components/home/about-section"
-import { ContactCTA } from "@/components/home/contact-cta"
-import { FeaturedTattoos } from "@/components/home/featured-tattoos"
-import { FlashDesignsPreview } from "@/components/home/flash-designs-preview"
-import { HeroSection } from "@/components/home/hero-section"
+import { HomeSectionRenderer } from "@/components/home/home-section-renderer"
 import { SiteFooter } from "@/components/home/site-footer"
 import { SiteHeader } from "@/components/home/site-header"
+import { getEnabledHomeSections } from "@/data/home-sections"
 import { getFeaturedFlashDesigns, getFeaturedPortfolioItems, getSiteSettings } from "@/lib/supabase/content"
 
 export const dynamic = "force-dynamic"
@@ -15,15 +12,20 @@ export default async function Home() {
     getFeaturedFlashDesigns(),
     getSiteSettings(),
   ])
+  const sections = getEnabledHomeSections()
 
   return (
     <main className="min-h-screen">
       <SiteHeader />
-      <HeroSection />
-      <FeaturedTattoos tattoos={featuredTattoos} />
-      <FlashDesignsPreview designs={featuredFlashDesigns} />
-      <AboutSection settings={settings} />
-      <ContactCTA settings={settings} />
+      {sections.map((section) => (
+        <HomeSectionRenderer
+          key={section.id}
+          section={section}
+          featuredTattoos={featuredTattoos}
+          featuredFlashDesigns={featuredFlashDesigns}
+          settings={settings}
+        />
+      ))}
       <SiteFooter settings={settings} />
     </main>
   )
