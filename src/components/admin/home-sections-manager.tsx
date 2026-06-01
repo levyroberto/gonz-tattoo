@@ -576,6 +576,10 @@ export function HomeSectionsManager({
     persistOrder(nextSections)
   }
 
+  function toggleOpenSection(sectionId: string) {
+    setOpenSectionId((current) => (current === sectionId ? null : sectionId))
+  }
+
   function toggleSection(sectionId: string, enabled: boolean) {
     const previousSections = orderedSections
     const nextSections = orderedSections.map((section) =>
@@ -705,7 +709,14 @@ export function HomeSectionsManager({
 
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-lg tracking-wide">{getSectionTitle(section)}</p>
+                    <button
+                      type="button"
+                      className="cursor-pointer text-left text-lg tracking-wide transition-colors hover:text-primary"
+                      aria-expanded={openSectionId === section.id}
+                      onClick={() => toggleOpenSection(section.id)}
+                    >
+                      {getSectionTitle(section)}
+                    </button>
                     <span className={`rounded-sm border px-2 py-0.5 text-xs font-medium ${getSectionContentType(section).className}`}>
                       {getSectionContentType(section).label}
                     </span>
@@ -748,7 +759,7 @@ export function HomeSectionsManager({
                     size="icon"
                     aria-label={`Editar ${getSectionTitle(section)}`}
                     aria-expanded={openSectionId === section.id}
-                    onClick={() => setOpenSectionId(openSectionId === section.id ? null : section.id)}
+                    onClick={() => toggleOpenSection(section.id)}
                   >
                     <ChevronDown
                       className={`transition-transform ${openSectionId === section.id ? "rotate-180" : ""}`}

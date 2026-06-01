@@ -334,7 +334,7 @@ export function SortablePortfolioList({
                 />
                 <AdminItemThumbnail src={item.image} alt={item.title} />
                 <div className="min-w-0">
-                  <p className="truncate text-lg tracking-wide">{item.title}</p>
+                  <p className="truncate text-lg tracking-wide transition-colors hover:text-primary">{item.title}</p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -576,7 +576,7 @@ export function SortableFlashList({ items: orderedItems, onItemsChange: setOrder
                 <AdminItemThumbnail src={item.image} alt={item.name} />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                      <p className="truncate text-lg tracking-wide">{item.name}</p>
+                      <p className="truncate text-lg tracking-wide transition-colors hover:text-primary">{item.name}</p>
                       <p className="text-sm text-muted-foreground">
                         {item.status}
                       </p>
