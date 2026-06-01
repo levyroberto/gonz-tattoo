@@ -121,7 +121,7 @@ export const SECTION_DEFINITIONS: Record<HomeSectionType, SectionDefinition> = {
     badge: {
       label: "Tatuajes",
       description: "Esta sección muestra trabajos cargados en Portfolio.",
-      className: "border-primary/35 bg-primary/10 text-primary",
+      className: "border-amber-500/40 bg-amber-500/10 text-amber-300",
     },
     contents: ["Título", "Carrusel", "Tatuajes", "Botón"],
     creatable: true,
@@ -167,7 +167,7 @@ export const SECTION_DEFINITIONS: Record<HomeSectionType, SectionDefinition> = {
     badge: {
       label: "Diseños",
       description: "Esta sección muestra diseños flash cargados en Diseños.",
-      className: "border-secondary/35 bg-secondary/10 text-secondary",
+      className: "border-cyan-500/35 bg-cyan-500/10 text-cyan-300",
     },
     contents: ["Título", "Descripción", "Grilla de diseños", "Botón"],
     creatable: true,
@@ -212,7 +212,7 @@ export const SECTION_DEFINITIONS: Record<HomeSectionType, SectionDefinition> = {
     contents: ["Imagen", "Presentación", "Frase destacada", "Métricas"],
     creatable: false,
     deletable: false,
-    titleFields: [],
+    titleFields: ["title"],
     fields: [
       { key: "title", formName: "title", label: "Título", type: "text", required: false, width: "full" },
       { key: "paragraphs", formName: "paragraphs", label: "Párrafos", type: "paragraphs", required: true, width: "full" },

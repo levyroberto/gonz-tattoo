@@ -686,7 +686,9 @@ export function SortableFlashList({
                     <option value="Reclamado">Reclamado</option>
                   </select>
                 </LabeledField>
-                <ActiveToggle defaultChecked={item.isActive ?? true} />
+                <div className="justify-self-start">
+                  <ActiveToggle defaultChecked={item.isActive ?? true} />
+                </div>
                 <div className="flex items-center justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setOpenItemId(null)}>
                     Cancelar
