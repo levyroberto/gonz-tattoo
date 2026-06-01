@@ -111,10 +111,6 @@ export function AdminTattoosSection({ portfolioItems, tattooStyles }: AdminTatto
 
   return (
     <section className="grid content-start gap-5">
-      <div className="border-b border-border pb-3">
-        <p className="text-sm uppercase tracking-[0.22em] text-muted-foreground">Gestión de</p>
-        <h2 className="text-5xl tracking-wide text-primary md:text-6xl">Tatuajes</h2>
-      </div>
 
       <CollapsibleAdminCard title="Nuevo tatuaje" description="Crear un tatuaje para publicar en la web.">
         <AdminActionForm
@@ -189,10 +185,6 @@ export function AdminDesignsSection({ flashItems }: AdminDesignsSectionProps) {
 
   return (
       <section className="grid content-start gap-5">
-        <div className="border-b border-border pb-3">
-          <p className="text-sm uppercase tracking-[0.22em] text-muted-foreground">Gestión de</p>
-          <h2 className="text-5xl tracking-wide text-secondary md:text-6xl">Diseños</h2>
-        </div>
 
         <CollapsibleAdminCard title="Nuevo diseño" description="Crear un diseño disponible para consulta.">
           <AdminActionForm
