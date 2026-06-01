@@ -24,15 +24,15 @@ export function HomeSectionRenderer({
 }: HomeSectionRendererProps) {
   switch (section.type) {
     case "hero":
-      return <HeroSection />
+      return <HeroSection content={section.content} layout={section.layout} style={section.style} />
     case "featuredPortfolio":
-      return <FeaturedTattoos tattoos={featuredTattoos} />
+      return <FeaturedTattoos tattoos={featuredTattoos} content={section.content} layout={section.layout} style={section.style} />
     case "flashPreview":
-      return <FlashDesignsPreview designs={featuredFlashDesigns} />
+      return <FlashDesignsPreview designs={featuredFlashDesigns} content={section.content} layout={section.layout} style={section.style} />
     case "about":
-      return <AboutSection settings={settings} />
+      return <AboutSection settings={settings} content={section.content} layout={section.layout} style={section.style} />
     case "contactCta":
-      return <ContactCTA settings={settings} />
+      return <ContactCTA settings={settings} content={section.content} layout={section.layout} style={section.style} />
     default:
       return null
   }

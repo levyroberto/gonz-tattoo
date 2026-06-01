@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { type PointerEvent, useCallback, useEffect, useRef, useState } from "react"
 
 import type { Tattoo } from "@/data/tattoos"
+import type { FeaturedPortfolioSectionContent, FeaturedPortfolioSectionLayout, FeaturedPortfolioSectionStyle } from "@/data/home-sections"
 import { TattooImageLightbox } from "@/components/tattoo-image-lightbox"
 import { useLightboxOpenGuard } from "@/hooks/use-lightbox-open-guard"
 
@@ -12,9 +13,16 @@ import { TattooCard } from "./tattoo-card"
 
 type FeaturedTattoosProps = {
   tattoos: Tattoo[]
+  content: FeaturedPortfolioSectionContent
+  layout: FeaturedPortfolioSectionLayout
+  style: FeaturedPortfolioSectionStyle
 }
 
-export function FeaturedTattoos({ tattoos }: FeaturedTattoosProps) {
+const sectionBackgroundClassNames: Record<FeaturedPortfolioSectionStyle["background"], string> = {
+  card: "bg-card",
+}
+
+export function FeaturedTattoos({ tattoos, content, layout, style }: FeaturedTattoosProps) {
   const initialIndex = tattoos.length > 0 ? Math.floor(tattoos.length / 2) : 0
   const loopCopyCount = 21
   const centerCopy = Math.floor(loopCopyCount / 2)
@@ -158,12 +166,12 @@ export function FeaturedTattoos({ tattoos }: FeaturedTattoosProps) {
   }
 
   return (
-    <section id="portfolio" className="relative py-24 bg-card grunge-texture">
+    <section id="portfolio" className={`relative py-24 ${sectionBackgroundClassNames[style.background]} grunge-texture`} data-layout={layout.variant}>
       <div className="container mx-auto px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="text-center mb-16">
-          <span className="text-secondary tracking-[0.3em] text-sm uppercase font-serif">Trabajos recientes</span>
+          <span className="text-secondary tracking-[0.3em] text-sm uppercase font-serif">{content.eyebrow}</span>
           <h2 className="text-5xl md:text-7xl font-sans tracking-wider mt-2 text-foreground">
-            PIEZAS <span className="text-primary">DESTACADAS</span>
+            {content.title} <span className="text-primary">{content.highlightedTitle}</span>
           </h2>
         </motion.div>
 
@@ -239,8 +247,8 @@ export function FeaturedTattoos({ tattoos }: FeaturedTattoosProps) {
         </div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.4 }} className="text-center mt-12">
-          <a href="/trabajos" className="inline-block px-8 py-4 border-2 border-primary text-primary font-sans text-lg tracking-widest uppercase transition-all duration-300 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_20px_oklch(0.45_0.18_25/0.4)]">
-            Ver mis trabajos
+          <a href={content.buttonHref} className="inline-block px-8 py-4 border-2 border-primary text-primary font-sans text-lg tracking-widest uppercase transition-all duration-300 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_20px_oklch(0.45_0.18_25/0.4)]">
+            {content.buttonLabel}
           </a>
         </motion.div>
       </div>
