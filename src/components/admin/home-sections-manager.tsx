@@ -99,10 +99,6 @@ function getSectionContents(section: HomeSection) {
   return getSectionDefinition(section.type)?.contents ?? []
 }
 
-function getSectionSource(section: HomeSection) {
-  return getSectionDefinition(section.type)?.source ?? ""
-}
-
 function getSectionContentType(section: HomeSection) {
   return getSectionDefinition(section.type)?.badge ?? SECTION_DEFINITIONS.hero.badge
 }
@@ -839,6 +835,23 @@ export function HomeSectionsManager({
               </div>
               {openSectionId === section.id && (
                 <div className="rounded-md border border-border bg-card p-3">
+                  <div className="mb-3 flex items-start justify-between gap-3 border-b border-border pb-3">
+                    <div className="min-w-0">
+                      <p className="text-base tracking-wide">{getSectionTitle(section)}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {section.enabled ? "Visible en la web" : "Oculta en la web"}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant={section.enabled ? "outline" : "default"}
+                      disabled={isPending}
+                      onClick={() => toggleSection(section.id, !section.enabled)}
+                    >
+                      {section.enabled ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                      {section.enabled ? "Ocultar sección" : "Mostrar sección"}
+                    </Button>
+                  </div>
                   <AdminActionForm
                     action={updateHomeSectionContent}
                     className="grid gap-3"
@@ -849,16 +862,6 @@ export function HomeSectionsManager({
                     <input name="type" type="hidden" value={section.type} />
                     <HomeSectionContentFields section={section} tattooStyles={tattooStyles} flashStyles={flashStyles} />
                     <div className="flex flex-wrap items-center justify-end gap-2">
-                      <Button
-                        type="button"
-                        variant={section.enabled ? "outline" : "default"}
-                        className="mr-auto"
-                        disabled={isPending}
-                        onClick={() => toggleSection(section.id, !section.enabled)}
-                      >
-                        {section.enabled ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
-                        {section.enabled ? "Ocultar" : "Mostrar"}
-                      </Button>
                       {getSectionDefinition(section.type)?.deletable && (
                         <Button
                           type="button"

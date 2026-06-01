@@ -1,8 +1,7 @@
 import Link from "next/link"
-import { ImagePlus, Images, LogOut, MessageSquareText } from "lucide-react"
+import { ArrowRight, ImagePlus, Images } from "lucide-react"
 
-import { logoutAdmin } from "@/app/admin/actions"
-import { AdminContentSections } from "@/components/admin/admin-content-sections"
+import { AdminPageShell } from "@/components/admin/admin-page-shell"
 import { FooterSectionForm } from "@/components/admin/footer-section-form"
 import { HomeSectionsManager } from "@/components/admin/home-sections-manager"
 import { SiteSettingsForm } from "@/components/admin/site-settings-form"
@@ -18,53 +17,41 @@ export default async function AdminPage() {
     ? tattooStyles.map((style) => style.name)
     : Array.from(new Set(portfolioItems.map((item) => item.style).filter(Boolean)))
   const flashStyleNames = Array.from(new Set(flashItems.map((item) => item.style).filter(Boolean)))
+  const activePortfolioCount = portfolioItems.filter((item) => item.isActive).length
+  const activeFlashCount = flashItems.filter((item) => item.isActive).length
 
   const summaryCards = [
     {
       title: "Tatuajes",
       value: stats.portfolioCount,
-      description: "Trabajos cargados",
+      activeCount: activePortfolioCount,
+      inactiveCount: Math.max(stats.portfolioCount - activePortfolioCount, 0),
+      description: "Trabajos publicados en la galería y secciones filtrables.",
       icon: Images,
+      href: "/admin/tatuajes",
+      action: "Gestionar tatuajes",
+      tone: "primary",
     },
     {
       title: "Diseños",
       value: stats.flashCount,
-      description: "Diseños cargados",
+      activeCount: activeFlashCount,
+      inactiveCount: Math.max(stats.flashCount - activeFlashCount, 0),
+      description: "Flash, cuadros u objetos disponibles para mostrar o consultar.",
       icon: ImagePlus,
+      href: "/admin/disenos",
+      action: "Gestionar diseños",
+      tone: "cyan",
     },
-    /*{
-      title: "Consultas",
-      value: stats.contactRequestCount,
-      description: "Pedidos recibidos",
-      icon: MessageSquareText,
-    }, 
-    */
   ]
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-card/70">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
-          <Link href="/" className="text-2xl tracking-wider">
-            <span>GONZ</span>
-            <span className="text-primary"> TATTOO</span>
-          </Link>
-
-          <form action={logoutAdmin}>
-            <Button variant="outline" type="submit">
-              <LogOut aria-hidden="true" />
-              Salir
-            </Button>
-          </form>
-        </div>
-      </header>
-
-      <section className="mx-auto grid max-w-6xl gap-8 px-4 py-8">
+    <AdminPageShell>
         <div className="grid gap-2">
           <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Panel de edición</p>
           <h1 className="text-4xl tracking-wide md:text-5xl">Administrador</h1>
           <p className="max-w-2xl text-muted-foreground">
-            Gestioná tatuajes y diseños desde Supabase. Los items inactivos quedan guardados pero no se muestran en la web pública.
+            Gestioná la home, los datos generales y entrá a las pantallas específicas de contenido.
           </p>
           <p className="text-sm text-muted-foreground">
             Estado DB: {stats.isConnected ? "Supabase conectado" : "sin respuesta de Supabase"}
@@ -74,19 +61,59 @@ export default async function AdminPage() {
         <div className="grid gap-4 md:grid-cols-2">
           {summaryCards.map((item) => {
             const Icon = item.icon
+            const toneClassNames = item.tone === "primary"
+              ? {
+                  icon: "border-amber-500/40 bg-amber-500/10 text-amber-300",
+                  title: "text-amber-300",
+                  button: "border-amber-500/50 text-amber-300 hover:bg-amber-500 hover:text-background",
+                }
+              : {
+                  icon: "border-cyan-500/35 bg-cyan-500/10 text-cyan-300",
+                  title: "text-cyan-300",
+                  button: "border-cyan-500/50 text-cyan-300 hover:bg-cyan-500 hover:text-background",
+                }
 
             return (
               <Card key={item.title} className="rounded-lg border border-border/70">
-                <CardHeader className="flex-row items-start justify-between">
-                  <div>
-                    <CardDescription>{item.title}</CardDescription>
-                    <CardTitle className="mt-1 text-4xl">{item.value}</CardTitle>
+                <CardHeader className="grid gap-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className={`flex size-12 items-center justify-center rounded-md border ${toneClassNames.icon}`}>
+                      <Icon className="size-6" aria-hidden="true" />
+                    </div>
+                    <span className="rounded-sm border border-border bg-muted px-2 py-0.5 text-xs uppercase tracking-wider text-muted-foreground">
+                      Contenido
+                    </span>
                   </div>
-                  <div className="flex size-10 items-center justify-center rounded-md border border-border bg-muted">
-                    <Icon className="size-5 text-primary" aria-hidden="true" />
+                  <div className="grid gap-2">
+                    <CardDescription className="text-sm uppercase tracking-[0.22em]">{item.action}</CardDescription>
+                    <CardTitle className={`text-5xl tracking-wide md:text-6xl ${toneClassNames.title}`}>
+                      {item.title}
+                    </CardTitle>
+                    <p className="text-sm leading-6 text-muted-foreground">{item.description}</p>
                   </div>
                 </CardHeader>
-                <CardContent className="text-muted-foreground">{item.description}</CardContent>
+                <CardContent className="grid gap-4">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="rounded-md border border-border bg-muted/30 px-3 py-2">
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Total</p>
+                      <p className="mt-1 text-2xl text-foreground">{item.value}</p>
+                    </div>
+                    <div className="rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2">
+                      <p className="text-xs uppercase tracking-wider text-green-400">Activos</p>
+                      <p className="mt-1 text-2xl text-green-400">{item.activeCount}</p>
+                    </div>
+                    <div className="rounded-md border border-destructive/35 bg-destructive/10 px-3 py-2">
+                      <p className="text-xs uppercase tracking-wider text-destructive">Ocultos</p>
+                      <p className="mt-1 text-2xl text-destructive">{item.inactiveCount}</p>
+                    </div>
+                  </div>
+                  <Button asChild variant="outline" size="lg" className={`w-full justify-between ${toneClassNames.button}`}>
+                    <Link href={item.href}>
+                      {item.action}
+                      <ArrowRight aria-hidden="true" />
+                    </Link>
+                  </Button>
+                </CardContent>
               </Card>
             )
           })}
@@ -103,9 +130,6 @@ export default async function AdminPage() {
         />
 
         <FooterSectionForm footer={footer} />
-
-        <AdminContentSections flashItems={flashItems} portfolioItems={portfolioItems} tattooStyles={tattooStyles} />
-      </section>
-    </main>
+    </AdminPageShell>
   )
 }

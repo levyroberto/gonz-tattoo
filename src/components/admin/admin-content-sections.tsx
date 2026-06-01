@@ -42,6 +42,15 @@ type AdminContentSectionsProps = {
   tattooStyles: TattooStyleOption[]
 }
 
+type AdminTattoosSectionProps = {
+  portfolioItems: Tattoo[]
+  tattooStyles: TattooStyleOption[]
+}
+
+type AdminDesignsSectionProps = {
+  flashItems: FlashDesign[]
+}
+
 const statusFilterOptions: { value: AdminStatusFilter; label: string }[] = [
   { value: "all", label: "Todos" },
   { value: "active", label: "Activos" },
@@ -84,11 +93,9 @@ function isFlashItem(item: unknown): item is FlashDesign {
   return Boolean(item && typeof item === "object" && "id" in item && "name" in item)
 }
 
-export function AdminContentSections({ flashItems, portfolioItems, tattooStyles }: AdminContentSectionsProps) {
+export function AdminTattoosSection({ portfolioItems, tattooStyles }: AdminTattoosSectionProps) {
   const [localPortfolioItems, setLocalPortfolioItems] = useState(portfolioItems)
-  const [localFlashItems, setLocalFlashItems] = useState(flashItems)
   const [portfolioStatusFilter, setPortfolioStatusFilter] = useState<AdminStatusFilter>("all")
-  const [flashStatusFilter, setFlashStatusFilter] = useState<AdminStatusFilter>("all")
   const existingTattooStyles = localPortfolioItems.map((item) => item.style)
   const tattooStyleNames = tattooStyles.length > 0 ? tattooStyles.map((style) => style.name) : existingTattooStyles
 
@@ -102,6 +109,74 @@ export function AdminContentSections({ flashItems, portfolioItems, tattooStyles 
     setLocalPortfolioItems((currentItems) => [item, ...currentItems])
   }
 
+  return (
+    <section className="grid content-start gap-5">
+      <div className="border-b border-border pb-3">
+        <p className="text-sm uppercase tracking-[0.22em] text-muted-foreground">Gestión de</p>
+        <h2 className="text-5xl tracking-wide text-primary md:text-6xl">Tatuajes</h2>
+      </div>
+
+      <CollapsibleAdminCard title="Nuevo tatuaje" description="Crear un tatuaje para publicar en la web.">
+        <AdminActionForm
+          action={createPortfolioItem}
+          className="grid gap-3"
+          onSuccess={addPortfolioItem}
+          requiredFields={tattooRequiredFields}
+          resetOnSuccess
+        >
+          <LabeledField label="Título">
+            <input className={fieldClass} name="title" />
+          </LabeledField>
+          <FieldError name="title" className={errorIndentClass} />
+          <LabeledField label="Estilo">
+            <TattooStyleSelect className={fieldClass} styles={tattooStyleNames} />
+          </LabeledField>
+          <LabeledField label="Fecha">
+            <input className={fieldClass} name="published_date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
+          </LabeledField>
+          <LabeledField label="Imagen">
+            <ImageInput />
+          </LabeledField>
+          <FieldError name="image" className={errorIndentClass} />
+          <LabeledField label="Descripción" alignTop>
+            <textarea className={tallFieldClass} name="description" />
+          </LabeledField>
+          <LabeledField label="Tags">
+            <input className={fieldClass} name="tags" placeholder="Separados por coma: dragon, abril, boca" />
+          </LabeledField>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <ActiveToggle defaultChecked={false} label="Destacado" name="is_featured" />
+            <ActiveToggle />
+          </div>
+          <Button type="submit">Crear tatuaje</Button>
+        </AdminActionForm>
+      </CollapsibleAdminCard>
+
+      <Card className="rounded-lg border border-border/70">
+        <CardHeader className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="grid gap-1.5">
+            <CardTitle>Tatuajes publicados</CardTitle>
+            <CardDescription>{localPortfolioItems.length} tatuajes cargados.</CardDescription>
+          </div>
+          <StatusFilterButtons value={portfolioStatusFilter} onChange={setPortfolioStatusFilter} />
+        </CardHeader>
+        <CardContent>
+          <SortablePortfolioList
+            items={localPortfolioItems}
+            onItemsChange={setLocalPortfolioItems}
+            tattooStyles={tattooStyleNames}
+            statusFilter={portfolioStatusFilter}
+          />
+        </CardContent>
+      </Card>
+    </section>
+  )
+}
+
+export function AdminDesignsSection({ flashItems }: AdminDesignsSectionProps) {
+  const [localFlashItems, setLocalFlashItems] = useState(flashItems)
+  const [flashStatusFilter, setFlashStatusFilter] = useState<AdminStatusFilter>("all")
+
   function addFlashItem(_formData: FormData, result?: AdminActionResult | void) {
     const item = result?.item
 
@@ -113,68 +188,6 @@ export function AdminContentSections({ flashItems, portfolioItems, tattooStyles 
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
-      <section className="grid content-start gap-5">
-        <div className="border-b border-border pb-3">
-          <p className="text-sm uppercase tracking-[0.22em] text-muted-foreground">Gestión de</p>
-          <h2 className="text-5xl tracking-wide text-primary md:text-6xl">Tatuajes</h2>
-        </div>
-
-        <CollapsibleAdminCard title="Nuevo tatuaje" description="Crear un tatuaje para publicar en la web.">
-          <AdminActionForm
-            action={createPortfolioItem}
-            className="grid gap-3"
-            onSuccess={addPortfolioItem}
-            requiredFields={tattooRequiredFields}
-            resetOnSuccess
-          >
-            <LabeledField label="Título">
-              <input className={fieldClass} name="title" />
-            </LabeledField>
-            <FieldError name="title" className={errorIndentClass} />
-            <LabeledField label="Estilo">
-              <TattooStyleSelect className={fieldClass} styles={tattooStyleNames} />
-            </LabeledField>
-            <LabeledField label="Fecha">
-              <input className={fieldClass} name="published_date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
-            </LabeledField>
-            <LabeledField label="Imagen">
-              <ImageInput />
-            </LabeledField>
-            <FieldError name="image" className={errorIndentClass} />
-            <LabeledField label="Descripción" alignTop>
-              <textarea className={tallFieldClass} name="description" />
-            </LabeledField>
-            <LabeledField label="Tags">
-              <input className={fieldClass} name="tags" placeholder="Separados por coma: dragon, abril, boca" />
-            </LabeledField>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <ActiveToggle defaultChecked={false} label="Destacado" name="is_featured" />
-              <ActiveToggle />
-            </div>
-            <Button type="submit">Crear tatuaje</Button>
-          </AdminActionForm>
-        </CollapsibleAdminCard>
-
-        <Card className="rounded-lg border border-border/70">
-          <CardHeader className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="grid gap-1.5">
-              <CardTitle>Tatuajes publicados</CardTitle>
-              <CardDescription>{localPortfolioItems.length} tatuajes cargados.</CardDescription>
-            </div>
-            <StatusFilterButtons value={portfolioStatusFilter} onChange={setPortfolioStatusFilter} />
-          </CardHeader>
-          <CardContent>
-            <SortablePortfolioList
-              items={localPortfolioItems}
-              onItemsChange={setLocalPortfolioItems}
-              tattooStyles={tattooStyleNames}
-              statusFilter={portfolioStatusFilter}
-            />
-          </CardContent>
-        </Card>
-      </section>
-
       <section className="grid content-start gap-5">
         <div className="border-b border-border pb-3">
           <p className="text-sm uppercase tracking-[0.22em] text-muted-foreground">Gestión de</p>
@@ -216,7 +229,9 @@ export function AdminContentSections({ flashItems, portfolioItems, tattooStyles 
                 <option value="Reclamado">Reclamado</option>
               </select>
             </LabeledField>
-            <ActiveToggle />
+            <div className="justify-self-start">
+              <ActiveToggle />
+            </div>
             <Button type="submit">Crear diseño</Button>
           </AdminActionForm>
         </CollapsibleAdminCard>
@@ -234,6 +249,14 @@ export function AdminContentSections({ flashItems, portfolioItems, tattooStyles 
           </CardContent>
         </Card>
       </section>
+  )
+}
+
+export function AdminContentSections({ flashItems, portfolioItems, tattooStyles }: AdminContentSectionsProps) {
+  return (
+    <div className="grid gap-8 lg:grid-cols-2">
+      <AdminTattoosSection portfolioItems={portfolioItems} tattooStyles={tattooStyles} />
+      <AdminDesignsSection flashItems={flashItems} />
     </div>
   )
 }
