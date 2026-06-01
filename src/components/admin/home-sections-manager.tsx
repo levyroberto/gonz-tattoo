@@ -1,16 +1,28 @@
 "use client"
 
-import { ChevronDown, Eye, EyeOff, GripVertical, MoveDown, MoveUp } from "lucide-react"
-import { type DragEvent, useState, useTransition } from "react"
+import { ChevronDown, Eye, EyeOff, GripVertical, MoveDown, MoveUp, Trash2 } from "lucide-react"
+import { type DragEvent, type FormEvent, type ReactNode, useState, useTransition } from "react"
 
-import { createHomeSection, reorderHomeSections, updateHomeSectionContent, updateHomeSectionEnabled } from "@/app/admin/actions"
+import { createHomeSection, deleteHomeSection, reorderHomeSections, updateHomeSectionContent, updateHomeSectionEnabled } from "@/app/admin/actions"
 import { AdminActionForm } from "@/components/admin/admin-action-form"
+import { ConfirmDeleteModal } from "@/components/admin/confirm-delete-modal"
 import { ImageInput } from "@/components/admin/image-input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { FlashDesign } from "@/data/flash-designs"
 import type { HomeSection } from "@/data/home-sections"
+import {
+  SECTION_DEFINITIONS,
+  getCreatableSectionDefinitions,
+  getSectionDefinition,
+  getSectionDisplayTitle,
+  parseSectionContentFromForm,
+  type ButtonPreviewVariant,
+  type SectionFieldDefinition,
+  type SectionFieldWidth,
+} from "@/data/home-section-schema"
 import type { Tattoo } from "@/data/tattoos"
+import { filterFlashDesigns, filterPortfolioItems } from "@/lib/home-section-filters"
 import { normalizeInternalLink } from "@/lib/internal-links"
 
 const fieldClass = "h-9 rounded-md border border-border bg-input px-3 text-foreground outline-none focus:border-primary"
@@ -61,114 +73,53 @@ function DropPlaceholder() {
   return <div className="h-12 rounded-md border-2 border-dashed border-primary bg-primary/10" />
 }
 
+function StatusBadge({ isActive }: { isActive?: boolean }) {
+  return (
+    <span
+      className={`shrink-0 rounded-sm border px-2 py-0.5 text-xs uppercase tracking-wider ${
+        isActive
+          ? "border-green-500/40 bg-green-500/10 text-green-400"
+          : "border-destructive/50 bg-destructive/10 text-destructive"
+      }`}
+    >
+      {isActive ? "Activo" : "Inactivo"}
+    </span>
+  )
+}
+
 function getSectionTitle(section: HomeSection) {
-  switch (section.type) {
-    case "hero":
-      return "Portada"
-    case "featuredPortfolio":
-      return "Galería destacada"
-    case "flashPreview":
-      return "Diseños listos"
-    case "about":
-      return "Sobre mí"
-    case "contactCta":
-      return "Bloque de contacto"
-  }
+  return getSectionDisplayTitle(section)
 }
 
 function getSectionDescription(section: HomeSection) {
-  switch (section.type) {
-    case "hero":
-      return "Primera pantalla de la web. Muestra imagen de fondo, título principal, texto corto y botones."
-    case "featuredPortfolio":
-      return "Muestra los tatuajes marcados como destacados en Portfolio."
-    case "flashPreview":
-      return "Muestra los primeros diseños flash activos."
-    case "about":
-      return "Muestra foto del artista, presentación, frase destacada y métricas."
-    case "contactCta":
-      return "Muestra texto de consulta, botones de WhatsApp/Instagram, dirección y horarios."
-  }
+  return getSectionDefinition(section.type)?.description ?? ""
 }
 
 function getSectionContents(section: HomeSection) {
-  switch (section.type) {
-    case "hero":
-      return ["Imagen de fondo", "Título principal", "Texto corto", "Botones"]
-    case "featuredPortfolio":
-      return ["Título", "Carrusel", "Tatuajes destacados", "Botón a Portfolio"]
-    case "flashPreview":
-      return ["Título", "Descripción", "Grilla de diseños", "Botón a Diseños"]
-    case "about":
-      return ["Imagen", "Presentación", "Frase destacada", "Métricas"]
-    case "contactCta":
-      return ["Texto de consulta", "WhatsApp", "Instagram", "Dirección y horarios"]
-  }
+  return getSectionDefinition(section.type)?.contents ?? []
 }
 
 function getSectionSource(section: HomeSection) {
-  switch (section.type) {
-    case "hero":
-      return "Contenido de Portada"
-    case "featuredPortfolio":
-      return "Portfolio > destacados"
-    case "flashPreview":
-      return "Diseños flash activos"
-    case "about":
-      return "Contenido de Sobre mí"
-    case "contactCta":
-      return "Datos del estudio + Bloque de contacto"
-  }
+  return getSectionDefinition(section.type)?.source ?? ""
 }
 
 function getSectionContentType(section: HomeSection) {
-  switch (section.type) {
-    case "featuredPortfolio":
-      return {
-        label: "Tatuajes",
-        description: "Esta sección muestra trabajos cargados en Portfolio.",
-        className: "border-primary/35 bg-primary/10 text-primary",
-      }
-    case "flashPreview":
-      return {
-        label: "Diseños",
-        description: "Esta sección muestra diseños flash cargados en Diseños.",
-        className: "border-secondary/35 bg-secondary/10 text-secondary",
-      }
-    case "hero":
-      return {
-        label: "Portada",
-        description: "Esta sección muestra contenido editorial de la home.",
-        className: "border-border bg-muted text-muted-foreground",
-      }
-    case "about":
-      return {
-        label: "Sobre mí",
-        description: "Esta sección muestra la presentación del artista.",
-        className: "border-border bg-muted text-muted-foreground",
-      }
-    case "contactCta":
-      return {
-        label: "Contacto",
-        description: "Esta sección muestra datos de contacto y llamados a consulta.",
-        className: "border-border bg-muted text-muted-foreground",
-      }
-  }
+  return getSectionDefinition(section.type)?.badge ?? SECTION_DEFINITIONS.hero.badge
 }
 
 function PreviewImageStrip({ images }: { images: Array<{ alt: string; src?: string }> }) {
-  const visibleImages = images.filter((image) => image.src).slice(0, 3)
+  const visibleImages = images.filter((image) => image.src).slice(0, 5)
 
   if (visibleImages.length === 0) {
     return (
       <div className="grid h-16 place-items-center rounded-md border border-dashed border-border bg-muted/40 text-xs text-muted-foreground">
-        Sin imágenes cargadas
+        Sin imágenes que coincidan
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-5 gap-1.5">
       {visibleImages.map((image) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -223,9 +174,17 @@ function SectionPreview({
     case "hero":
       return <SinglePreviewImage alt="Vista previa de portada" src={section.style.backgroundImage} />
     case "featuredPortfolio":
-      return <PreviewImageStrip images={portfolioPreviewItems.map((item) => ({ alt: item.title, src: item.image }))} />
+      return (
+        <PreviewImageStrip
+          images={filterPortfolioItems(portfolioPreviewItems, section).map((item) => ({ alt: item.title, src: item.image }))}
+        />
+      )
     case "flashPreview":
-      return <PreviewImageStrip images={flashPreviewItems.map((item) => ({ alt: item.name, src: item.image }))} />
+      return (
+        <PreviewImageStrip
+          images={filterFlashDesigns(flashPreviewItems, section).map((item) => ({ alt: item.name, src: item.image }))}
+        />
+      )
     case "about":
       return <SinglePreviewImage alt="Vista previa de Sobre mí" src={section.style.image} />
     case "contactCta":
@@ -262,6 +221,40 @@ function FormField({
     <label className="grid gap-1 text-sm text-muted-foreground">
       {label}
       <input className={fieldClass} name={name} defaultValue={defaultValue} required={required} />
+    </label>
+  )
+}
+
+const buttonPreviewClass: Record<ButtonPreviewVariant, string> = {
+  primaryFilled: "border-2 border-primary bg-primary text-primary-foreground placeholder:text-primary-foreground/50",
+  primaryOutline: "border-2 border-primary bg-transparent text-primary placeholder:text-primary/50",
+  secondaryFilled: "border-2 border-secondary bg-secondary text-secondary-foreground placeholder:text-secondary-foreground/50",
+  secondaryOutline: "border-2 border-secondary bg-transparent text-secondary placeholder:text-secondary/50",
+}
+
+function ButtonPreviewField({
+  defaultValue,
+  label,
+  name,
+  required = true,
+  variant,
+}: {
+  defaultValue: string
+  label: string
+  name: string
+  required?: boolean
+  variant: ButtonPreviewVariant
+}) {
+  return (
+    <label className="grid gap-1 text-sm text-muted-foreground">
+      {label}
+      <input
+        className={`h-10 w-full rounded-md px-4 text-center font-sans text-sm uppercase tracking-widest outline-none transition-colors placeholder:normal-case placeholder:tracking-normal focus:ring-2 focus:ring-primary/40 ${buttonPreviewClass[variant]}`}
+        name={name}
+        defaultValue={defaultValue}
+        required={required}
+        placeholder="Texto del botón"
+      />
     </label>
   )
 }
@@ -333,10 +326,15 @@ function CheckboxField({
   name: string
 }) {
   return (
-    <label className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm text-muted-foreground">
-      <input name={name} type="checkbox" defaultChecked={defaultChecked} />
-      {label}
-    </label>
+    <div className="grid gap-1">
+      <span className="hidden text-sm md:block md:invisible" aria-hidden="true">
+        .
+      </span>
+      <label className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm text-muted-foreground">
+        <input name={name} type="checkbox" defaultChecked={defaultChecked} />
+        {label}
+      </label>
+    </div>
   )
 }
 
@@ -359,6 +357,104 @@ function TextareaField({
   )
 }
 
+const fieldWidthClass: Record<SectionFieldWidth, string> = {
+  full: "w-full",
+  half: "w-full md:w-[calc(50%-0.375rem)]",
+  third: "w-full md:w-[calc(33.333%-0.5rem)]",
+}
+
+function FieldWrapper({ children, width = "full" }: { children: ReactNode; width?: SectionFieldWidth }) {
+  return <div className={fieldWidthClass[width]}>{children}</div>
+}
+
+function StatsFields({ section }: { section: HomeSection }) {
+  const stats =
+    section.type === "about"
+      ? section.content.stats
+      : ([] as { value: string; label: string; tone: string }[])
+
+  return (
+    <div className="grid w-full gap-3">
+      {stats.map((stat, index) => (
+        <div key={stat.tone} className="grid gap-3 rounded-md border border-border p-3 md:grid-cols-2">
+          <input name={`stat_tone_${index}`} type="hidden" value={stat.tone} />
+          <FormField label={`Métrica ${index + 1}`} name={`stat_value_${index}`} defaultValue={stat.value} />
+          <FormField label="Texto" name={`stat_label_${index}`} defaultValue={stat.label} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SectionFieldControl({
+  field,
+  flashStyles,
+  section,
+  tattooStyles,
+}: {
+  field: SectionFieldDefinition
+  flashStyles: string[]
+  section: HomeSection
+  tattooStyles: string[]
+}) {
+  const content = section.content as Record<string, unknown>
+  const style = section.style as Record<string, unknown>
+  const required = field.required ?? true
+  const rawValue = field.target === "style" ? style[field.key] : content[field.key]
+
+  if (field.buttonPreview) {
+    return (
+      <ButtonPreviewField
+        label={field.label}
+        name={field.formName}
+        defaultValue={String(rawValue ?? "")}
+        required={required}
+        variant={field.buttonPreview}
+      />
+    )
+  }
+
+  switch (field.type) {
+    case "image":
+      return (
+        <label className="grid gap-1 text-sm text-muted-foreground">
+          {field.label}
+          <ImageInput defaultUrl={typeof rawValue === "string" ? rawValue : ""} />
+        </label>
+      )
+    case "textarea":
+      return <TextareaField label={field.label} name={field.formName} defaultValue={String(rawValue ?? "")} required={required} />
+    case "paragraphs":
+      return (
+        <TextareaField
+          label={field.label}
+          name={field.formName}
+          defaultValue={Array.isArray(rawValue) ? (rawValue as string[]).join("\n") : ""}
+          required={required}
+        />
+      )
+    case "checkbox":
+      return <CheckboxField label={field.label} name={field.formName} defaultChecked={Boolean(rawValue)} />
+    case "internalLink":
+      return <LinkSelectField label={field.label} name={field.formName} defaultValue={String(rawValue ?? "")} />
+    case "styleFilter":
+      return (
+        <StyleFilterSelectField
+          label={field.label}
+          name={field.formName}
+          defaultValue={String(rawValue ?? "")}
+          options={field.styleOptions === "flash" ? flashStyles : tattooStyles}
+        />
+      )
+    case "stats":
+      return <StatsFields section={section} />
+    case "number":
+    case "text":
+    default:
+      return <FormField label={field.label} name={field.formName} defaultValue={String(rawValue ?? "")} required={required} />
+  }
+}
+
 function HomeSectionContentFields({
   flashStyles,
   section,
@@ -368,113 +464,42 @@ function HomeSectionContentFields({
   section: HomeSection
   tattooStyles: string[]
 }) {
-  const contentType = getSectionContentType(section)
+  const definition = getSectionDefinition(section.type)
 
-  switch (section.type) {
-    case "hero":
-      return (
-        <>
-          <label className="grid gap-1 text-sm text-muted-foreground">
-            Imagen de fondo
-            <ImageInput defaultUrl={section.style.backgroundImage} />
-          </label>
-          <FormField label="Eyebrow" name="eyebrow" defaultValue={section.content.eyebrow} />
-          <div className="grid gap-3 md:grid-cols-2">
-            <FormField label="Marca principal" name="brand_primary" defaultValue={section.content.brandPrimary} />
-            <FormField label="Marca destacada" name="brand_accent" defaultValue={section.content.brandAccent} />
-          </div>
-          <TextareaField label="Descripción" name="description" defaultValue={section.content.description} />
-          <div className="grid gap-3 md:grid-cols-2">
-            <FormField label="Botón principal" name="primary_button_label" defaultValue={section.content.primaryButtonLabel} />
-            <LinkSelectField label="Link principal" name="primary_button_href" defaultValue={section.content.primaryButtonHref} />
-            <FormField label="Botón secundario" name="secondary_button_label" defaultValue={section.content.secondaryButtonLabel} />
-            <LinkSelectField label="Link secundario" name="secondary_button_href" defaultValue={section.content.secondaryButtonHref} />
-          </div>
-        </>
-      )
-    case "featuredPortfolio":
-      return (
-        <>
-          <FormField label="Eyebrow" name="eyebrow" defaultValue={section.content.eyebrow} />
-          <div className="grid gap-3 md:grid-cols-2">
-            <FormField label="Título" name="title" defaultValue={section.content.title} />
-            <FormField label="Título destacado" name="highlighted_title" defaultValue={section.content.highlightedTitle} />
-            <FormField label="Botón" name="button_label" defaultValue={section.content.buttonLabel} />
-            <LinkSelectField label="Link del botón" name="button_href" defaultValue={section.content.buttonHref} />
-          </div>
-          <div className="grid gap-3 rounded-md border border-border p-3 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <span className={`inline-flex rounded-sm border px-2 py-0.5 text-xs font-medium ${contentType.className}`}>
-                Tipo de contenido: {contentType.label}
-              </span>
-              <p className="mt-1 text-xs text-muted-foreground">{contentType.description}</p>
-            </div>
-            <FormField label="Tags a mostrar" name="filter_tags" defaultValue={section.content.filterTags} required={false} />
-            <StyleFilterSelectField label="Estilo a mostrar" name="filter_style" defaultValue={section.content.filterStyle} options={tattooStyles} />
-            <FormField label="Desde fecha" name="date_from" defaultValue={section.content.dateFrom} required={false} />
-            <FormField label="Hasta fecha" name="date_to" defaultValue={section.content.dateTo} required={false} />
-            <FormField label="Cantidad máxima" name="limit" defaultValue={String(section.content.limit)} />
-            <CheckboxField label="Solo destacados" name="featured_only" defaultChecked={section.content.featuredOnly} />
-          </div>
-        </>
-      )
-    case "flashPreview":
-      return (
-        <>
-          <FormField label="Eyebrow" name="eyebrow" defaultValue={section.content.eyebrow} />
-          <FormField label="Título destacado" name="highlighted_title" defaultValue={section.content.highlightedTitle} />
-          <TextareaField label="Descripción" name="description" defaultValue={section.content.description} />
-          <div className="grid gap-3 md:grid-cols-2">
-            <FormField label="Botón" name="button_label" defaultValue={section.content.buttonLabel} />
-            <LinkSelectField label="Link del botón" name="button_href" defaultValue={section.content.buttonHref} />
-          </div>
-          <div className="grid gap-3 rounded-md border border-border p-3 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <span className={`inline-flex rounded-sm border px-2 py-0.5 text-xs font-medium ${contentType.className}`}>
-                Tipo de contenido: {contentType.label}
-              </span>
-              <p className="mt-1 text-xs text-muted-foreground">{contentType.description}</p>
-            </div>
-            <FormField label="Tags a mostrar" name="filter_tags" defaultValue={section.content.filterTags} required={false} />
-            <StyleFilterSelectField label="Estilo a mostrar" name="filter_style" defaultValue={section.content.filterStyle} options={flashStyles} />
-            <FormField label="Cantidad máxima" name="limit" defaultValue={String(section.content.limit)} />
-          </div>
-        </>
-      )
-    case "about":
-      return (
-        <>
-          <FormField label="Título" name="title" defaultValue={section.content.title} required={false} />
-          <TextareaField label="Párrafos" name="paragraphs" defaultValue={section.content.paragraphs.join("\n")} />
-          <TextareaField label="Quote" name="quote" defaultValue={section.content.quote} />
-          <div className="grid gap-3">
-            {section.content.stats.map((stat, index) => (
-              <div key={stat.tone} className="grid gap-3 rounded-md border border-border p-3 md:grid-cols-2">
-                <input name={`stat_tone_${index}`} type="hidden" value={stat.tone} />
-                <FormField label={`Métrica ${index + 1}`} name={`stat_value_${index}`} defaultValue={stat.value} />
-                <FormField label="Texto" name={`stat_label_${index}`} defaultValue={stat.label} />
-              </div>
-            ))}
-          </div>
-        </>
-      )
-    case "contactCta":
-      return (
-        <>
-          <FormField label="Eyebrow" name="eyebrow" defaultValue={section.content.eyebrow} />
-          <div className="grid gap-3 md:grid-cols-2">
-            <FormField label="Título" name="title" defaultValue={section.content.title} />
-            <FormField label="Título destacado" name="highlighted_title" defaultValue={section.content.highlightedTitle} />
-          </div>
-          <TextareaField label="Descripción" name="description" defaultValue={section.content.description} />
-          <div className="grid gap-3 md:grid-cols-3">
-            <FormField label="Label WhatsApp" name="whatsapp_label" defaultValue={section.content.whatsappLabel} />
-            <FormField label="Label Instagram" name="instagram_label" defaultValue={section.content.instagramLabel} />
-            <FormField label="Label horario" name="hours_label" defaultValue={section.content.hoursLabel} />
-          </div>
-        </>
-      )
+  if (!definition) {
+    return null
   }
+
+  const mainFields = definition.fields.filter((field) => !field.inFilterBox)
+  const filterFields = definition.fields.filter((field) => field.inFilterBox)
+
+  return (
+    <>
+      <div className="flex flex-wrap gap-3">
+        {mainFields.map((field) => (
+          <FieldWrapper key={field.formName} width={field.width}>
+            <SectionFieldControl field={field} section={section} tattooStyles={tattooStyles} flashStyles={flashStyles} />
+          </FieldWrapper>
+        ))}
+      </div>
+
+      {filterFields.length > 0 && (
+        <div className="flex flex-wrap gap-3 rounded-md border border-border p-3">
+          <div className="w-full">
+            <span className={`inline-flex rounded-sm border px-2 py-0.5 text-xs font-medium ${definition.badge.className}`}>
+              Tipo de contenido: {definition.badge.label}
+            </span>
+            <p className="mt-1 text-xs text-muted-foreground">{definition.badge.description}</p>
+          </div>
+          {filterFields.map((field) => (
+            <FieldWrapper key={field.formName} width={field.width}>
+              <SectionFieldControl field={field} section={section} tattooStyles={tattooStyles} flashStyles={flashStyles} />
+            </FieldWrapper>
+          ))}
+        </div>
+      )}
+    </>
+  )
 }
 
 export function HomeSectionsManager({
@@ -488,6 +513,8 @@ export function HomeSectionsManager({
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dropPosition, setDropPosition] = useState<DropPosition | null>(null)
   const [openSectionId, setOpenSectionId] = useState<string | null>(null)
+  const [draftContent, setDraftContent] = useState<Record<string, unknown> | null>(null)
+  const [deletingSectionId, setDeletingSectionId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isError, setIsError] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -577,7 +604,50 @@ export function HomeSectionsManager({
   }
 
   function toggleOpenSection(sectionId: string) {
+    setDraftContent(null)
     setOpenSectionId((current) => (current === sectionId ? null : sectionId))
+  }
+
+  function handleSectionFormChange(section: HomeSection, event: FormEvent<HTMLFormElement>) {
+    const definition = getSectionDefinition(section.type)
+
+    if (!definition) {
+      return
+    }
+
+    setDraftContent(parseSectionContentFromForm(new FormData(event.currentTarget), definition))
+  }
+
+  function removeSection(sectionId: string) {
+    const previousSections = orderedSections
+
+    setMessage(null)
+    setIsError(false)
+
+    startTransition(async () => {
+      const formData = new FormData()
+
+      formData.set("section_key", sectionId)
+
+      const result = await deleteHomeSection(formData)
+
+      if (!result.ok) {
+        setOrderedSections(previousSections)
+        setIsError(true)
+        setMessage("No se pudo borrar la sección")
+        return
+      }
+
+      setOrderedSections((currentSections) => currentSections.filter((section) => section.id !== sectionId))
+
+      if (openSectionId === sectionId) {
+        setOpenSectionId(null)
+      }
+
+      setMessage("Sección borrada")
+    })
+
+    setDeletingSectionId(null)
   }
 
   function toggleSection(sectionId: string, enabled: boolean) {
@@ -636,6 +706,8 @@ export function HomeSectionsManager({
     }
   }
 
+  const deletingSection = orderedSections.find((section) => section.id === deletingSectionId) ?? null
+
   return (
     <Card className="rounded-lg border border-border/70">
       <CardHeader>
@@ -644,13 +716,17 @@ export function HomeSectionsManager({
       </CardHeader>
       <CardContent>
         <div className="grid gap-3" aria-busy={isPending}>
-          <AdminActionForm action={createHomeSection} className="grid gap-2 rounded-md border border-border bg-muted/30 p-3 md:grid-cols-[1fr_auto]" onSuccess={addSection} resetOnSuccess>
-            <select className={fieldClass} name="type" defaultValue="featuredPortfolio">
-              <option value="featuredPortfolio">Tatuajes - nueva galería filtrable</option>
-              <option value="flashPreview">Diseños - nueva sección filtrable</option>
+          <AdminActionForm action={createHomeSection} className="grid gap-2 rounded-md border border-border bg-muted/30 p-3 md:grid-cols-[1fr_auto_auto]" onSuccess={addSection} resetOnSuccess>
+            <input className={fieldClass} name="title" placeholder="Título de la sección" required />
+            <select className={fieldClass} name="type" defaultValue={getCreatableSectionDefinitions()[0]?.type}>
+              {getCreatableSectionDefinitions().map((definition) => (
+                <option key={definition.type} value={definition.type}>
+                  {definition.badge.label}
+                </option>
+              ))}
             </select>
             <Button type="submit" variant="outline">
-              Agregar sección
+              Crear nueva sección
             </Button>
           </AdminActionForm>
 
@@ -720,9 +796,6 @@ export function HomeSectionsManager({
                     <span className={`rounded-sm border px-2 py-0.5 text-xs font-medium ${getSectionContentType(section).className}`}>
                       {getSectionContentType(section).label}
                     </span>
-                    <span className="rounded-sm border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                      {getSectionSource(section)}
-                    </span>
                   </div>
                   <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{getSectionDescription(section)}</p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
@@ -736,22 +809,18 @@ export function HomeSectionsManager({
 
                 <div className="md:justify-self-stretch">
                   <SectionPreview
-                    section={section}
+                    section={
+                      openSectionId === section.id && draftContent
+                        ? ({ ...section, content: { ...section.content, ...draftContent } } as HomeSection)
+                        : section
+                    }
                     portfolioPreviewItems={portfolioPreviewItems}
                     flashPreviewItems={flashPreviewItems}
                   />
                 </div>
 
-                <div className="flex flex-wrap gap-2 justify-self-start md:justify-self-end">
-                  <Button
-                    type="button"
-                    variant={section.enabled ? "outline" : "default"}
-                    disabled={isPending}
-                    onClick={() => toggleSection(section.id, !section.enabled)}
-                  >
-                    {section.enabled ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
-                    {section.enabled ? "Ocultar" : "Mostrar"}
-                  </Button>
+                <div className="flex flex-wrap items-center gap-2 justify-self-start md:justify-self-end">
+                  <StatusBadge isActive={section.enabled} />
 
                   <Button
                     type="button"
@@ -770,12 +839,42 @@ export function HomeSectionsManager({
               </div>
               {openSectionId === section.id && (
                 <div className="rounded-md border border-border bg-card p-3">
-                  <AdminActionForm action={updateHomeSectionContent} className="grid gap-3" onSuccess={updateSectionContent}>
+                  <AdminActionForm
+                    action={updateHomeSectionContent}
+                    className="grid gap-3"
+                    onChange={(event) => handleSectionFormChange(section, event)}
+                    onSuccess={updateSectionContent}
+                  >
                     <input name="section_key" type="hidden" value={section.id} />
                     <input name="type" type="hidden" value={section.type} />
                     <HomeSectionContentFields section={section} tattooStyles={tattooStyles} flashStyles={flashStyles} />
-                    <div className="flex justify-end">
-                      <Button type="submit" variant="outline">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant={section.enabled ? "outline" : "default"}
+                        className="mr-auto"
+                        disabled={isPending}
+                        onClick={() => toggleSection(section.id, !section.enabled)}
+                      >
+                        {section.enabled ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                        {section.enabled ? "Ocultar" : "Mostrar"}
+                      </Button>
+                      {getSectionDefinition(section.type)?.deletable && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          aria-label={`Borrar ${getSectionTitle(section)}`}
+                          disabled={isPending}
+                          onClick={() => setDeletingSectionId(section.id)}
+                        >
+                          <Trash2 aria-hidden="true" />
+                        </Button>
+                      )}
+                      <Button type="button" variant="outline" disabled={isPending} onClick={() => toggleOpenSection(section.id)}>
+                        Cancelar
+                      </Button>
+                      <Button type="submit" variant="default">
                         Guardar contenido
                       </Button>
                     </div>
@@ -787,6 +886,17 @@ export function HomeSectionsManager({
           ))}
         </div>
       </CardContent>
+
+      <ConfirmDeleteModal
+        isOpen={deletingSectionId !== null}
+        itemName={deletingSection ? getSectionTitle(deletingSection) ?? "" : ""}
+        onClose={() => setDeletingSectionId(null)}
+        onConfirm={() => {
+          if (deletingSectionId) {
+            removeSection(deletingSectionId)
+          }
+        }}
+      />
     </Card>
   )
 }
