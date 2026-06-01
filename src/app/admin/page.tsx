@@ -89,9 +89,13 @@ export default async function AdminPage() {
 
         <SiteSettingsForm settings={settings} />
 
-        <FooterSectionForm footer={footer} />
+        <HomeSectionsManager
+          sections={homeSections}
+          flashPreviewItems={flashItems.filter((item) => item.isActive).slice(0, 3)}
+          portfolioPreviewItems={portfolioItems.filter((item) => item.isActive && item.isFeatured).slice(0, 3)}
+        />
 
-        <HomeSectionsManager sections={homeSections} />
+        <FooterSectionForm footer={footer} />
 
         <AdminContentSections flashItems={flashItems} portfolioItems={portfolioItems} tattooStyles={tattooStyles} />
       </section>

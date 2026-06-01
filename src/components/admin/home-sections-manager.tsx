@@ -8,12 +8,16 @@ import { AdminActionForm } from "@/components/admin/admin-action-form"
 import { ImageInput } from "@/components/admin/image-input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import type { FlashDesign } from "@/data/flash-designs"
 import type { HomeSection } from "@/data/home-sections"
+import type { Tattoo } from "@/data/tattoos"
 
 const fieldClass = "h-9 rounded-md border border-border bg-input px-3 text-foreground outline-none focus:border-primary"
 const tallFieldClass = "min-h-24 rounded-md border border-border bg-input px-3 py-2 text-foreground outline-none focus:border-primary"
 
 type HomeSectionsManagerProps = {
+  flashPreviewItems: FlashDesign[]
+  portfolioPreviewItems: Tattoo[]
   sections: HomeSection[]
 }
 
@@ -52,28 +56,135 @@ function getSectionTitle(section: HomeSection) {
     case "hero":
       return "Portada"
     case "featuredPortfolio":
-      return "Trabajos destacados"
+      return "Galería destacada"
     case "flashPreview":
-      return "Diseños flash"
+      return "Diseños listos"
     case "about":
       return "Sobre mí"
     case "contactCta":
-      return "Contacto"
+      return "Bloque de contacto"
   }
 }
 
 function getSectionDescription(section: HomeSection) {
   switch (section.type) {
     case "hero":
-      return section.content.eyebrow
+      return "Primera pantalla de la web. Muestra imagen de fondo, título principal, texto corto y botones."
     case "featuredPortfolio":
-      return `${section.content.title} ${section.content.highlightedTitle}`
+      return "Muestra los tatuajes marcados como destacados en Portfolio."
     case "flashPreview":
-      return section.content.description
+      return "Muestra los primeros diseños flash activos."
     case "about":
-      return section.content.quote
+      return "Muestra foto del artista, presentación, frase destacada y métricas."
     case "contactCta":
-      return `${section.content.title} ${section.content.highlightedTitle}`
+      return "Muestra texto de consulta, botones de WhatsApp/Instagram, dirección y horarios."
+  }
+}
+
+function getSectionContents(section: HomeSection) {
+  switch (section.type) {
+    case "hero":
+      return ["Imagen de fondo", "Título principal", "Texto corto", "Botones"]
+    case "featuredPortfolio":
+      return ["Título", "Carrusel", "Tatuajes destacados", "Botón a Portfolio"]
+    case "flashPreview":
+      return ["Título", "Descripción", "Grilla de diseños", "Botón a Diseños"]
+    case "about":
+      return ["Imagen", "Presentación", "Frase destacada", "Métricas"]
+    case "contactCta":
+      return ["Texto de consulta", "WhatsApp", "Instagram", "Dirección y horarios"]
+  }
+}
+
+function getSectionSource(section: HomeSection) {
+  switch (section.type) {
+    case "hero":
+      return "Contenido de Portada"
+    case "featuredPortfolio":
+      return "Portfolio > destacados"
+    case "flashPreview":
+      return "Diseños flash activos"
+    case "about":
+      return "Contenido de Sobre mí"
+    case "contactCta":
+      return "Datos del estudio + Bloque de contacto"
+  }
+}
+
+function PreviewImageStrip({ images }: { images: Array<{ alt: string; src?: string }> }) {
+  const visibleImages = images.filter((image) => image.src).slice(0, 3)
+
+  if (visibleImages.length === 0) {
+    return (
+      <div className="grid h-16 place-items-center rounded-md border border-dashed border-border bg-muted/40 text-xs text-muted-foreground">
+        Sin imágenes cargadas
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {visibleImages.map((image) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={`${image.alt}-${image.src}`}
+          src={image.src}
+          alt={image.alt}
+          className="h-16 w-full rounded-md border border-border bg-muted object-cover"
+          loading="lazy"
+        />
+      ))}
+    </div>
+  )
+}
+
+function SinglePreviewImage({ alt, src }: { alt: string; src?: string }) {
+  if (!src) {
+    return (
+      <div className="grid h-20 place-items-center rounded-md border border-dashed border-border bg-muted/40 text-xs text-muted-foreground">
+        Sin imagen cargada
+      </div>
+    )
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} className="h-20 w-full rounded-md border border-border bg-muted object-cover" loading="lazy" />
+  )
+}
+
+function ContactPreviewBadges() {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {["WhatsApp", "Instagram", "Dirección", "Horario"].map((item) => (
+        <span key={item} className="rounded-md border border-border bg-muted px-2 py-1 text-xs text-muted-foreground">
+          {item}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function SectionPreview({
+  flashPreviewItems,
+  portfolioPreviewItems,
+  section,
+}: {
+  flashPreviewItems: FlashDesign[]
+  portfolioPreviewItems: Tattoo[]
+  section: HomeSection
+}) {
+  switch (section.type) {
+    case "hero":
+      return <SinglePreviewImage alt="Vista previa de portada" src={section.style.backgroundImage} />
+    case "featuredPortfolio":
+      return <PreviewImageStrip images={portfolioPreviewItems.map((item) => ({ alt: item.title, src: item.image }))} />
+    case "flashPreview":
+      return <PreviewImageStrip images={flashPreviewItems.map((item) => ({ alt: item.name, src: item.image }))} />
+    case "about":
+      return <SinglePreviewImage alt="Vista previa de Sobre mí" src={section.style.image} />
+    case "contactCta":
+      return <ContactPreviewBadges />
   }
 }
 
@@ -208,7 +319,7 @@ function HomeSectionContentFields({ section }: { section: HomeSection }) {
   }
 }
 
-export function HomeSectionsManager({ sections }: HomeSectionsManagerProps) {
+export function HomeSectionsManager({ flashPreviewItems, portfolioPreviewItems, sections }: HomeSectionsManagerProps) {
   const [orderedSections, setOrderedSections] = useState(sections)
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dropPosition, setDropPosition] = useState<DropPosition | null>(null)
@@ -367,7 +478,7 @@ export function HomeSectionsManager({ sections }: HomeSectionsManagerProps) {
             >
               {dropPosition?.id === section.id && dropPosition.edge === "before" && <DropPlaceholder />}
               <div
-                className={`grid gap-3 rounded-md border bg-card p-3 transition-opacity md:grid-cols-[auto_auto_1fr_auto] md:items-center ${
+                className={`grid gap-3 rounded-md border bg-card p-3 transition-opacity md:grid-cols-[auto_auto_1fr_minmax(11rem,14rem)_auto] md:items-center ${
                   section.enabled ? "border-border" : "border-dashed border-destructive/50 opacity-65"
                 } ${
                   draggedId === section.id ? "opacity-40" : ""
@@ -413,11 +524,24 @@ export function HomeSectionsManager({ sections }: HomeSectionsManagerProps) {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-lg tracking-wide">{getSectionTitle(section)}</p>
-                    <span className="rounded-sm border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                      {section.type}
-                    </span>
+                    <span className="rounded-sm border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground">{getSectionSource(section)}</span>
                   </div>
-                  <p className="line-clamp-2 text-sm text-muted-foreground">{getSectionDescription(section)}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{getSectionDescription(section)}</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {getSectionContents(section).map((item) => (
+                      <span key={item} className="rounded-sm border border-border/70 px-2 py-0.5 text-xs text-muted-foreground">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="md:justify-self-stretch">
+                  <SectionPreview
+                    section={section}
+                    portfolioPreviewItems={portfolioPreviewItems}
+                    flashPreviewItems={flashPreviewItems}
+                  />
                 </div>
 
                 <div className="flex flex-wrap gap-2 justify-self-start md:justify-self-end">

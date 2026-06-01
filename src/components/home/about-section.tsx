@@ -45,9 +45,7 @@ export function AboutSection({ settings, content, layout, style }: AboutSectionP
           )}
 
           <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.2 }}>
-            {settings.artistName && <span className="block text-secondary tracking-[0.3em] text-xl md:text-2xl uppercase font-serif">{settings.artistName}</span>}
-
-            <div className="mt-6 mb-8 flex items-center gap-3" aria-hidden="true">
+            <div className="mb-8 flex items-center gap-3" aria-hidden="true">
               <span className="h-px w-16 bg-primary" />
               <span className="size-2 rotate-45 bg-primary/70" />
               <span className="h-px flex-1 bg-border" />
