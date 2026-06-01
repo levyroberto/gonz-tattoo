@@ -707,7 +707,7 @@ export function HomeSectionsManager({
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-lg tracking-wide">{getSectionTitle(section)}</p>
                     <span className={`rounded-sm border px-2 py-0.5 text-xs font-medium ${getSectionContentType(section).className}`}>
-                      Tipo: {getSectionContentType(section).label}
+                      {getSectionContentType(section).label}
                     </span>
                     <span className="rounded-sm border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                       {getSectionSource(section)}
