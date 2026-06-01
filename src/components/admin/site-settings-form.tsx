@@ -9,8 +9,6 @@ import { Button } from "@/components/ui/button"
 import type { SiteSettings } from "@/lib/supabase/content"
 
 const fieldClass = "h-9 rounded-md border border-border bg-input px-3 text-foreground outline-none focus:border-primary"
-const tallFieldClass = "min-h-20 rounded-md border border-border bg-input px-3 py-2 text-foreground outline-none focus:border-primary"
-
 type SiteSettingsFormProps = {
   settings: SiteSettings
 }
@@ -56,7 +54,7 @@ export function SiteSettingsForm({ settings }: SiteSettingsFormProps) {
   return (
     <CollapsibleAdminCard
       title="Información del sitio"
-      description="Datos globales usados en footer, contacto, WhatsApp, Instagram y sobre mí."
+      description="Datos globales usados en contacto, WhatsApp, Instagram y sobre mí."
     >
       <AdminActionForm action={updateSiteSettings} className="grid gap-4">
         <div className="grid gap-3 md:grid-cols-2">
@@ -103,16 +101,6 @@ export function SiteSettingsForm({ settings }: SiteSettingsFormProps) {
         <label className="grid gap-1.5 text-sm text-muted-foreground">
           Dirección del estudio
           <input className={fieldClass} name="studio_address" defaultValue={settings.studioAddress ?? ""} placeholder="Almagro, CABA" />
-        </label>
-
-        <label className="grid gap-1.5 text-sm text-muted-foreground">
-          Texto del footer
-          <textarea
-            className={tallFieldClass}
-            name="footer_tagline"
-            defaultValue={settings.footerTagline ?? ""}
-            placeholder="Texto breve para mostrar en el footer, como 'Tatuajes old school, diseños tradicionales y tinta con carácter.'"
-          />
         </label>
 
         <Button type="submit" className="justify-self-start">

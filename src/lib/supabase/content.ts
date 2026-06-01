@@ -1,6 +1,11 @@
 import type { FlashDesign } from "@/data/flash-designs"
+import { footerSectionFallback } from "@/data/global-sections"
+import type { FooterSection } from "@/data/global-sections"
+import { getEnabledHomeSections, getHomeSectionFallback, getHomeSectionsFallback } from "@/data/home-sections"
+import type { HomeSection } from "@/data/home-sections"
 import type { Tattoo } from "@/data/tattoos"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import type { Database, Json } from "@/lib/supabase/database.types"
 
 export type AdminContentStats = {
   portfolioCount: number
@@ -16,7 +21,6 @@ export type TattooStyleOption = {
 
 export type SiteSettings = {
   brandName?: string
-  footerTagline?: string
   instagramUrl?: string
   whatsappUrl?: string
   studioAddress?: string
@@ -24,6 +28,8 @@ export type SiteSettings = {
   artistName?: string
   artistYears?: string
 }
+
+type SiteSectionRow = Database["public"]["Tables"]["site_sections"]["Row"]
 
 function normalizeFlashStatus(status: string): FlashDesign["status"] {
   const normalizedStatus = status.trim().toLowerCase()
@@ -257,12 +263,14 @@ export async function getFeaturedFlashDesigns(): Promise<FlashDesign[]> {
 }
 
 export async function getAdminDashboardContent() {
-  const [stats, portfolioItems, flashItems, tattooStyles, settings] = await Promise.all([
+  const [stats, portfolioItems, flashItems, tattooStyles, settings, homeSections, footer] = await Promise.all([
     getAdminContentStats(),
     getAdminPortfolioItems(),
     getAdminFlashDesigns(),
     getTattooStyles(),
     getSiteSettings(),
+    getAdminHomeSections(),
+    getGlobalFooterSection(),
   ])
 
   return {
@@ -271,7 +279,135 @@ export async function getAdminDashboardContent() {
     flashItems,
     tattooStyles,
     settings,
+    homeSections,
+    footer,
   }
+}
+
+function isJsonRecord(value: Json): value is { [key: string]: Json | undefined } {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function normalizeHomeSection(row: SiteSectionRow): HomeSection | null {
+  const fallback = getHomeSectionFallback(row.section_key)
+
+  if (!fallback || row.type !== fallback.type) {
+    return null
+  }
+
+  return {
+    ...fallback,
+    enabled: row.enabled,
+    order: row.display_order,
+    content: isJsonRecord(row.content) ? { ...fallback.content, ...row.content } : fallback.content,
+    layout: isJsonRecord(row.layout) ? { ...fallback.layout, ...row.layout } : fallback.layout,
+    style: isJsonRecord(row.style) ? { ...fallback.style, ...row.style } : fallback.style,
+  } as HomeSection
+}
+
+function normalizeFooterSection(row: SiteSectionRow): FooterSection | null {
+  if (row.section_key !== footerSectionFallback.id || row.type !== footerSectionFallback.type) {
+    return null
+  }
+
+  return {
+    ...footerSectionFallback,
+    enabled: row.enabled,
+    order: row.display_order,
+    content: isJsonRecord(row.content) ? { ...footerSectionFallback.content, ...row.content } : footerSectionFallback.content,
+    layout: isJsonRecord(row.layout) ? { ...footerSectionFallback.layout, ...row.layout } : footerSectionFallback.layout,
+    style: isJsonRecord(row.style) ? { ...footerSectionFallback.style, ...row.style } : footerSectionFallback.style,
+  } as FooterSection
+}
+
+export async function getHomeSections(): Promise<HomeSection[]> {
+  const supabase = createSupabaseServerClient()
+
+  if (!supabase) {
+    return getEnabledHomeSections()
+  }
+
+  const { data, error } = await supabase
+    .from("site_sections")
+    .select("id, page_key, section_key, type, enabled, display_order, content, layout, style, created_at, updated_at")
+    .eq("page_key", "home")
+    .order("display_order", { ascending: true })
+
+  if (error) {
+    console.error("Supabase home sections fetch failed:", error.message)
+    return getEnabledHomeSections()
+  }
+
+  if (!data || data.length === 0) {
+    return getEnabledHomeSections()
+  }
+
+  const sections = data
+    .map(normalizeHomeSection)
+    .filter((section): section is HomeSection => section !== null)
+
+  if (sections.length === 0) {
+    return getEnabledHomeSections()
+  }
+
+  return getEnabledHomeSections(sections)
+}
+
+export async function getAdminHomeSections(): Promise<HomeSection[]> {
+  const supabase = createSupabaseServerClient()
+
+  if (!supabase) {
+    return getHomeSectionsFallback()
+  }
+
+  const { data, error } = await supabase
+    .from("site_sections")
+    .select("id, page_key, section_key, type, enabled, display_order, content, layout, style, created_at, updated_at")
+    .eq("page_key", "home")
+    .order("display_order", { ascending: true })
+
+  if (error) {
+    console.error("Supabase admin home sections fetch failed:", error.message)
+    return getHomeSectionsFallback()
+  }
+
+  if (!data || data.length === 0) {
+    return getHomeSectionsFallback()
+  }
+
+  const sections = data
+    .map(normalizeHomeSection)
+    .filter((section): section is HomeSection => section !== null)
+
+  return sections.length > 0
+    ? sections.toSorted((firstSection, secondSection) => firstSection.order - secondSection.order)
+    : getHomeSectionsFallback()
+}
+
+export async function getGlobalFooterSection(): Promise<FooterSection> {
+  const supabase = createSupabaseServerClient()
+
+  if (!supabase) {
+    return footerSectionFallback
+  }
+
+  const { data, error } = await supabase
+    .from("site_sections")
+    .select("id, page_key, section_key, type, enabled, display_order, content, layout, style, created_at, updated_at")
+    .eq("page_key", "global")
+    .eq("section_key", "site-footer")
+    .maybeSingle()
+
+  if (error) {
+    console.error("Supabase footer section fetch failed:", error.message)
+    return footerSectionFallback
+  }
+
+  if (!data) {
+    return footerSectionFallback
+  }
+
+  return normalizeFooterSection(data) ?? footerSectionFallback
 }
 
 export async function getSiteSettings(): Promise<SiteSettings> {
@@ -283,7 +419,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 
   const { data, error } = await supabase
     .from("site_settings")
-    .select("brand_name, footer_tagline, instagram_url, whatsapp_url, studio_address, studio_hours, artist_name, artist_years")
+    .select("brand_name, instagram_url, whatsapp_url, studio_address, studio_hours, artist_name, artist_years")
     .eq("id", 1)
     .maybeSingle()
 
@@ -298,7 +434,6 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 
   return {
     brandName: data.brand_name ?? undefined,
-    footerTagline: data.footer_tagline ?? undefined,
     instagramUrl: data.instagram_url ?? undefined,
     whatsappUrl: data.whatsapp_url ?? undefined,
     studioAddress: data.studio_address ?? undefined,

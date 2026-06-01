@@ -145,7 +145,6 @@ export type Database = {
         Row: {
           id: number
           brand_name: string | null
-          footer_tagline: string | null
           instagram_url: string | null
           whatsapp_url: string | null
           studio_address: string | null
@@ -157,7 +156,6 @@ export type Database = {
         Insert: {
           id?: number
           brand_name?: string | null
-          footer_tagline?: string | null
           instagram_url?: string | null
           whatsapp_url?: string | null
           studio_address?: string | null
@@ -169,13 +167,54 @@ export type Database = {
         Update: {
           id?: number
           brand_name?: string | null
-          footer_tagline?: string | null
           instagram_url?: string | null
           whatsapp_url?: string | null
           studio_address?: string | null
           studio_hours?: string | null
           artist_name?: string | null
           artist_years?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      site_sections: {
+        Row: {
+          id: number
+          page_key: string
+          section_key: string
+          type: string
+          enabled: boolean
+          display_order: number
+          content: Json
+          layout: Json
+          style: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          page_key: string
+          section_key: string
+          type: string
+          enabled?: boolean
+          display_order?: number
+          content?: Json
+          layout?: Json
+          style?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          page_key?: string
+          section_key?: string
+          type?: string
+          enabled?: boolean
+          display_order?: number
+          content?: Json
+          layout?: Json
+          style?: Json
+          created_at?: string
           updated_at?: string
         }
         Relationships: []

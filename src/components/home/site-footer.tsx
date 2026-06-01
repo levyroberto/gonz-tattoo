@@ -3,15 +3,22 @@
 import { motion } from "framer-motion"
 import Link from "next/link"
 
+import type { FooterSection } from "@/data/global-sections"
 import { navLinks } from "@/data/site-content"
 import type { SiteSettings } from "@/lib/supabase/content"
 
 type SiteFooterProps = {
+  footer: FooterSection
   settings: SiteSettings
 }
 
-export function SiteFooter({ settings }: SiteFooterProps) {
+export function SiteFooter({ footer, settings }: SiteFooterProps) {
   const brandName = settings.brandName ?? ""
+  const copyrightText = [brandName, footer.content.legalText].filter(Boolean).join(". ")
+
+  if (!footer.enabled) {
+    return null
+  }
 
   return (
     <footer className="relative py-12 bg-card border-t border-border">
@@ -21,7 +28,7 @@ export function SiteFooter({ settings }: SiteFooterProps) {
             <h3 className="text-3xl font-sans tracking-wider">
               <span className="text-foreground">{brandName}</span>
             </h3>
-            {settings.footerTagline && <p className="text-muted-foreground font-serif italic text-sm mt-1">{settings.footerTagline}</p>}
+            {footer.content.tagline && <p className="text-muted-foreground font-serif italic text-sm mt-1">{footer.content.tagline}</p>}
           </motion.div>
 
           <nav className="flex flex-wrap justify-center gap-6">
@@ -50,14 +57,13 @@ export function SiteFooter({ settings }: SiteFooterProps) {
           </div>
         </div>
 
-        <div className="mt-8 pt-8 border-t border-border text-center">
-          <p className="text-muted-foreground text-sm font-serif">
-            &copy; {new Date().getFullYear()} {brandName}. Todos los derechos reservados.
-          </p>
-          <p className="text-muted-foreground/50 text-xs mt-2">
-            Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.
-          </p>
-        </div>
+        {copyrightText && (
+          <div className="mt-8 pt-8 border-t border-border text-center">
+            <p className="text-muted-foreground text-sm font-serif">
+              &copy; {new Date().getFullYear()} {copyrightText}
+            </p>
+          </div>
+        )}
       </div>
     </footer>
   )
