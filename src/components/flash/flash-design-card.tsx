@@ -74,11 +74,7 @@ export function FlashDesignCard({ design, index, onOpen, whatsappUrl }: FlashDes
           <p className="mt-1 text-secondary font-serif italic">{design.style}</p>
         </div>
 
-        <dl className="grid grid-cols-1 gap-3 border-y border-border py-4 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="font-sans tracking-widest text-muted-foreground uppercase">Ubicación</dt>
-            <dd className="mt-1 font-serif text-foreground">{design.placement}</dd>
-          </div>
+        <dl className="grid grid-cols-1 gap-3 border-y border-border py-4 text-sm">
           <div>
             <dt className="font-sans tracking-widest text-muted-foreground uppercase">Tamaño</dt>
             <dd className="mt-1 font-serif text-foreground">{design.size}</dd>

@@ -1,7 +1,7 @@
 import type { FlashDesign } from "@/data/flash-designs"
 import { footerSectionFallback } from "@/data/global-sections"
 import type { FooterSection } from "@/data/global-sections"
-import { getEnabledHomeSections, getHomeSectionFallback, getHomeSectionsFallback } from "@/data/home-sections"
+import { getEnabledHomeSections, getHomeSectionFallback, getHomeSectionsFallback, getHomeSectionTemplate } from "@/data/home-sections"
 import type { HomeSection } from "@/data/home-sections"
 import type { Tattoo } from "@/data/tattoos"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -30,6 +30,31 @@ export type SiteSettings = {
 }
 
 type SiteSectionRow = Database["public"]["Tables"]["site_sections"]["Row"]
+type PortfolioItemRow = {
+  id: number
+  title: string
+  style: string
+  image_url: string
+  description: string | null
+  is_featured: boolean
+  is_active?: boolean
+  display_order: number
+  published_date?: string
+  tags?: string[]
+}
+
+type FlashDesignRow = {
+  id: number
+  name: string
+  price: number
+  image_url: string
+  status: string
+  style: string
+  size: string
+  is_active?: boolean
+  display_order: number
+  tags?: string[]
+}
 
 function normalizeFlashStatus(status: string): FlashDesign["status"] {
   const normalizedStatus = status.trim().toLowerCase()
@@ -121,23 +146,39 @@ async function getPortfolioItemsByVisibility(onlyActive: boolean): Promise<Tatto
 
   let query = supabase
     .from("portfolio_items")
-    .select("id, title, style, image_url, description, is_featured, is_active, display_order")
+    .select("id, title, style, image_url, description, is_featured, is_active, display_order, published_date, tags")
     .order("display_order", { ascending: true })
 
   if (onlyActive) {
     query = query.eq("is_active", true)
   }
 
-  let { data, error } = await query
+  let { data, error }: { data: PortfolioItemRow[] | null; error: { message: string } | null } = await query
 
-  if (error?.message.includes("is_active")) {
+  if (error) {
     const fallback = await supabase
       .from("portfolio_items")
-      .select("id, title, style, image_url, description, is_featured, display_order")
+      .select("id, title, style, image_url, description, is_featured, is_active, display_order")
       .order("display_order", { ascending: true })
 
-    data = fallback.data?.map((item) => ({ ...item, is_active: true })) ?? null
-    error = fallback.error
+    if (!fallback.error) {
+      data = fallback.data ?? null
+      error = null
+    } else if (fallback.error.message.includes("is_active")) {
+      const legacyFallback = await supabase
+        .from("portfolio_items")
+        .select("id, title, style, image_url, description, is_featured, display_order")
+        .order("display_order", { ascending: true })
+
+      data = legacyFallback.data?.map((item) => ({ ...item, is_active: true })) ?? null
+      error = legacyFallback.error
+    } else {
+      error = fallback.error
+    }
+  }
+
+  if (onlyActive) {
+    data = data?.filter((item) => item.is_active ?? true) ?? null
   }
 
   if (error) {
@@ -154,6 +195,8 @@ async function getPortfolioItemsByVisibility(onlyActive: boolean): Promise<Tatto
     displayOrder: item.display_order,
     isActive: item.is_active,
     isFeatured: item.is_featured,
+    publishedDate: "published_date" in item ? item.published_date : undefined,
+    tags: "tags" in item ? item.tags ?? [] : [],
   }))
 }
 
@@ -164,24 +207,40 @@ export async function getFeaturedPortfolioItems(): Promise<Tattoo[]> {
     return []
   }
 
-  let { data, error } = await supabase
+  let { data, error }: { data: PortfolioItemRow[] | null; error: { message: string } | null } = await supabase
     .from("portfolio_items")
-    .select("id, title, style, image_url, description, is_featured, is_active, display_order")
+    .select("id, title, style, image_url, description, is_featured, is_active, display_order, published_date, tags")
     .eq("is_featured", true)
     .eq("is_active", true)
+    .order("published_date", { ascending: false })
     .order("display_order", { ascending: true })
     .limit(4)
 
-  if (error?.message.includes("is_active")) {
+  if (error) {
     const fallback = await supabase
       .from("portfolio_items")
-      .select("id, title, style, image_url, description, is_featured, display_order")
+      .select("id, title, style, image_url, description, is_featured, is_active, display_order")
       .eq("is_featured", true)
+      .eq("is_active", true)
       .order("display_order", { ascending: true })
       .limit(4)
 
-    data = fallback.data?.map((item) => ({ ...item, is_active: true })) ?? null
-    error = fallback.error
+    if (!fallback.error) {
+      data = fallback.data ?? null
+      error = null
+    } else if (fallback.error.message.includes("is_active")) {
+      const legacyFallback = await supabase
+        .from("portfolio_items")
+        .select("id, title, style, image_url, description, is_featured, display_order")
+        .eq("is_featured", true)
+        .order("display_order", { ascending: true })
+        .limit(4)
+
+      data = legacyFallback.data?.map((item) => ({ ...item, is_active: true })) ?? null
+      error = legacyFallback.error
+    } else {
+      error = fallback.error
+    }
   }
 
   if (error) {
@@ -198,6 +257,8 @@ export async function getFeaturedPortfolioItems(): Promise<Tattoo[]> {
     displayOrder: item.display_order,
     isActive: item.is_active,
     isFeatured: item.is_featured,
+    publishedDate: "published_date" in item ? item.published_date : undefined,
+    tags: "tags" in item ? item.tags ?? [] : [],
   }))
 }
 
@@ -218,23 +279,45 @@ async function getFlashDesignsByVisibility(onlyActive: boolean): Promise<FlashDe
 
   let query = supabase
     .from("flash_designs")
-    .select("id, name, price, image_url, status, style, placement, size, is_active, display_order")
+    .select("id, name, price, image_url, status, style, size, is_active, display_order, tags")
     .order("display_order", { ascending: true })
 
   if (onlyActive) {
     query = query.eq("is_active", true)
   }
 
-  let { data, error } = await query
+  let { data, error }: { data: FlashDesignRow[] | null; error: { message: string } | null } = await query
 
-  if (error?.message.includes("is_active")) {
-    const fallback = await supabase
+  if (error) {
+    let fallbackQuery = supabase
       .from("flash_designs")
-      .select("id, name, price, image_url, status, style, placement, size, display_order")
+      .select("id, name, price, image_url, status, style, size, is_active, display_order")
       .order("display_order", { ascending: true })
 
-    data = fallback.data?.map((design) => ({ ...design, is_active: true })) ?? null
-    error = fallback.error
+    if (onlyActive) {
+      fallbackQuery = fallbackQuery.eq("is_active", true)
+    }
+
+    const fallback = await fallbackQuery
+
+    if (!fallback.error) {
+      data = fallback.data ?? null
+      error = null
+    } else if (fallback.error.message.includes("is_active")) {
+      const legacyFallback = await supabase
+        .from("flash_designs")
+        .select("id, name, price, image_url, status, style, size, display_order")
+        .order("display_order", { ascending: true })
+
+      data = legacyFallback.data?.map((design) => ({ ...design, is_active: true })) ?? null
+      error = legacyFallback.error
+    } else {
+      error = fallback.error
+    }
+  }
+
+  if (onlyActive) {
+    data = data?.filter((design) => design.is_active ?? true) ?? null
   }
 
   if (error) {
@@ -249,10 +332,10 @@ async function getFlashDesignsByVisibility(onlyActive: boolean): Promise<FlashDe
     image: design.image_url,
     status: normalizeFlashStatus(design.status),
     style: design.style,
-    placement: design.placement,
     size: design.size,
     displayOrder: design.display_order,
     isActive: design.is_active,
+    tags: "tags" in design ? design.tags ?? [] : [],
   }))
 }
 
@@ -289,7 +372,7 @@ function isJsonRecord(value: Json): value is { [key: string]: Json | undefined }
 }
 
 function normalizeHomeSection(row: SiteSectionRow): HomeSection | null {
-  const fallback = getHomeSectionFallback(row.section_key)
+  const fallback = getHomeSectionFallback(row.section_key) ?? getHomeSectionTemplate(row.type as HomeSection["type"])
 
   if (!fallback || row.type !== fallback.type) {
     return null
@@ -297,6 +380,7 @@ function normalizeHomeSection(row: SiteSectionRow): HomeSection | null {
 
   return {
     ...fallback,
+    id: row.section_key,
     enabled: row.enabled,
     order: row.display_order,
     content: isJsonRecord(row.content) ? { ...fallback.content, ...row.content } : fallback.content,

@@ -8,6 +8,7 @@ import type { Tattoo } from "@/data/tattoos"
 import type { FeaturedPortfolioSectionContent, FeaturedPortfolioSectionLayout, FeaturedPortfolioSectionStyle } from "@/data/home-sections"
 import { TattooImageLightbox } from "@/components/tattoo-image-lightbox"
 import { useLightboxOpenGuard } from "@/hooks/use-lightbox-open-guard"
+import { normalizeInternalLink } from "@/lib/internal-links"
 
 import { TattooCard } from "./tattoo-card"
 
@@ -254,7 +255,7 @@ export function FeaturedTattoos({ tattoos, content, layout, style }: FeaturedTat
 
         {hasButton && (
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.4 }} className="text-center mt-12">
-            <a href={content.buttonHref} className="inline-block px-8 py-4 border-2 border-primary text-primary font-sans text-lg tracking-widest uppercase transition-all duration-300 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_20px_oklch(0.45_0.18_25/0.4)]">
+            <a href={normalizeInternalLink(content.buttonHref)} className="inline-block px-8 py-4 border-2 border-primary text-primary font-sans text-lg tracking-widest uppercase transition-all duration-300 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_20px_oklch(0.45_0.18_25/0.4)]">
               {content.buttonLabel}
             </a>
           </motion.div>

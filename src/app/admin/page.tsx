@@ -14,6 +14,10 @@ import { getAdminDashboardContent } from "@/lib/supabase/content"
 export default async function AdminPage() {
   await requireAdmin()
   const { flashItems, footer, homeSections, portfolioItems, settings, stats, tattooStyles } = await getAdminDashboardContent()
+  const tattooStyleNames = tattooStyles.length > 0
+    ? tattooStyles.map((style) => style.name)
+    : Array.from(new Set(portfolioItems.map((item) => item.style).filter(Boolean)))
+  const flashStyleNames = Array.from(new Set(flashItems.map((item) => item.style).filter(Boolean)))
 
   const summaryCards = [
     {
@@ -92,7 +96,9 @@ export default async function AdminPage() {
         <HomeSectionsManager
           sections={homeSections}
           flashPreviewItems={flashItems.filter((item) => item.isActive).slice(0, 3)}
+          flashStyles={flashStyleNames}
           portfolioPreviewItems={portfolioItems.filter((item) => item.isActive && item.isFeatured).slice(0, 3)}
+          tattooStyles={tattooStyleNames}
         />
 
         <FooterSectionForm footer={footer} />

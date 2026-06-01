@@ -7,4 +7,6 @@ export interface Tattoo {
   displayOrder?: number
   isActive?: boolean
   isFeatured?: boolean
+  publishedDate?: string
+  tags?: string[]
 }

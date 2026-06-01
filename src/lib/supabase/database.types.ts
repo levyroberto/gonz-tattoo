@@ -13,6 +13,8 @@ export type Database = {
           is_featured: boolean
           is_active: boolean
           display_order: number
+          published_date: string
+          tags: string[]
           created_at: string
         }
         Insert: {
@@ -24,6 +26,8 @@ export type Database = {
           is_featured?: boolean
           is_active?: boolean
           display_order?: number
+          published_date?: string
+          tags?: string[]
           created_at?: string
         }
         Update: {
@@ -35,6 +39,8 @@ export type Database = {
           is_featured?: boolean
           is_active?: boolean
           display_order?: number
+          published_date?: string
+          tags?: string[]
           created_at?: string
         }
         Relationships: []
@@ -71,10 +77,10 @@ export type Database = {
           image_url: string
           status: "Disponible" | "Reservado" | "Reclamado"
           style: string
-          placement: string
           size: string
           is_active: boolean
           display_order: number
+          tags: string[]
           created_at: string
         }
         Insert: {
@@ -84,10 +90,10 @@ export type Database = {
           image_url: string
           status?: "Disponible" | "Reservado" | "Reclamado"
           style: string
-          placement: string
           size: string
           is_active?: boolean
           display_order?: number
+          tags?: string[]
           created_at?: string
         }
         Update: {
@@ -97,10 +103,10 @@ export type Database = {
           image_url?: string
           status?: "Disponible" | "Reservado" | "Reclamado"
           style?: string
-          placement?: string
           size?: string
           is_active?: boolean
           display_order?: number
+          tags?: string[]
           created_at?: string
         }
         Relationships: []

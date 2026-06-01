@@ -3,7 +3,7 @@
 import { ChevronDown, Eye, EyeOff, GripVertical, MoveDown, MoveUp } from "lucide-react"
 import { type DragEvent, useState, useTransition } from "react"
 
-import { reorderHomeSections, updateHomeSectionContent, updateHomeSectionEnabled } from "@/app/admin/actions"
+import { createHomeSection, reorderHomeSections, updateHomeSectionContent, updateHomeSectionEnabled } from "@/app/admin/actions"
 import { AdminActionForm } from "@/components/admin/admin-action-form"
 import { ImageInput } from "@/components/admin/image-input"
 import { Button } from "@/components/ui/button"
@@ -11,13 +11,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import type { FlashDesign } from "@/data/flash-designs"
 import type { HomeSection } from "@/data/home-sections"
 import type { Tattoo } from "@/data/tattoos"
+import { normalizeInternalLink } from "@/lib/internal-links"
 
 const fieldClass = "h-9 rounded-md border border-border bg-input px-3 text-foreground outline-none focus:border-primary"
 const tallFieldClass = "min-h-24 rounded-md border border-border bg-input px-3 py-2 text-foreground outline-none focus:border-primary"
+const internalLinkOptions = [
+  { label: "Trabajos", value: "/trabajos" },
+  { label: "Diseños flash", value: "/disenos" },
+  { label: "Sobre mí", value: "/sobre-mi" },
+  { label: "Contacto", value: "/contact" },
+  { label: "Inicio", value: "/" },
+]
 
 type HomeSectionsManagerProps = {
   flashPreviewItems: FlashDesign[]
+  flashStyles: string[]
   portfolioPreviewItems: Tattoo[]
+  tattooStyles: string[]
   sections: HomeSection[]
 }
 
@@ -111,6 +121,41 @@ function getSectionSource(section: HomeSection) {
   }
 }
 
+function getSectionContentType(section: HomeSection) {
+  switch (section.type) {
+    case "featuredPortfolio":
+      return {
+        label: "Tatuajes",
+        description: "Esta sección muestra trabajos cargados en Portfolio.",
+        className: "border-primary/35 bg-primary/10 text-primary",
+      }
+    case "flashPreview":
+      return {
+        label: "Diseños",
+        description: "Esta sección muestra diseños flash cargados en Diseños.",
+        className: "border-secondary/35 bg-secondary/10 text-secondary",
+      }
+    case "hero":
+      return {
+        label: "Portada",
+        description: "Esta sección muestra contenido editorial de la home.",
+        className: "border-border bg-muted text-muted-foreground",
+      }
+    case "about":
+      return {
+        label: "Sobre mí",
+        description: "Esta sección muestra la presentación del artista.",
+        className: "border-border bg-muted text-muted-foreground",
+      }
+    case "contactCta":
+      return {
+        label: "Contacto",
+        description: "Esta sección muestra datos de contacto y llamados a consulta.",
+        className: "border-border bg-muted text-muted-foreground",
+      }
+  }
+}
+
 function PreviewImageStrip({ images }: { images: Array<{ alt: string; src?: string }> }) {
   const visibleImages = images.filter((image) => image.src).slice(0, 3)
 
@@ -198,6 +243,10 @@ function isHomeSectionContentUpdate(item: unknown): item is HomeSectionContentUp
   return Boolean(item && typeof item === "object" && "sectionKey" in item && "content" in item)
 }
 
+function isHomeSection(item: unknown): item is HomeSection {
+  return Boolean(item && typeof item === "object" && "id" in item && "type" in item && "content" in item)
+}
+
 function FormField({
   defaultValue,
   label,
@@ -213,6 +262,80 @@ function FormField({
     <label className="grid gap-1 text-sm text-muted-foreground">
       {label}
       <input className={fieldClass} name={name} defaultValue={defaultValue} required={required} />
+    </label>
+  )
+}
+
+function StyleFilterSelectField({
+  defaultValue,
+  label,
+  name,
+  options,
+}: {
+  defaultValue: string
+  label: string
+  name: string
+  options: string[]
+}) {
+  const normalizedOptions = Array.from(new Set(options.map((option) => option.trim()).filter(Boolean)))
+  const hasKnownValue = normalizedOptions.some((option) => option.toLowerCase() === defaultValue.toLowerCase())
+
+  return (
+    <label className="grid gap-1 text-sm text-muted-foreground">
+      {label}
+      <select className={fieldClass} name={name} defaultValue={defaultValue}>
+        <option value="">Todos los estilos</option>
+        {!hasKnownValue && defaultValue && <option value={defaultValue}>{defaultValue}</option>}
+        {normalizedOptions.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+function LinkSelectField({
+  defaultValue,
+  label,
+  name,
+}: {
+  defaultValue: string
+  label: string
+  name: string
+}) {
+  const normalizedDefaultValue = normalizeInternalLink(defaultValue)
+  const hasKnownValue = internalLinkOptions.some((option) => option.value === normalizedDefaultValue)
+
+  return (
+    <label className="grid gap-1 text-sm text-muted-foreground">
+      {label}
+      <select className={fieldClass} name={name} defaultValue={normalizedDefaultValue} required>
+        {!hasKnownValue && normalizedDefaultValue && <option value={normalizedDefaultValue}>{normalizedDefaultValue}</option>}
+        {internalLinkOptions.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+function CheckboxField({
+  defaultChecked,
+  label,
+  name,
+}: {
+  defaultChecked: boolean
+  label: string
+  name: string
+}) {
+  return (
+    <label className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm text-muted-foreground">
+      <input name={name} type="checkbox" defaultChecked={defaultChecked} />
+      {label}
     </label>
   )
 }
@@ -236,7 +359,17 @@ function TextareaField({
   )
 }
 
-function HomeSectionContentFields({ section }: { section: HomeSection }) {
+function HomeSectionContentFields({
+  flashStyles,
+  section,
+  tattooStyles,
+}: {
+  flashStyles: string[]
+  section: HomeSection
+  tattooStyles: string[]
+}) {
+  const contentType = getSectionContentType(section)
+
   switch (section.type) {
     case "hero":
       return (
@@ -253,9 +386,9 @@ function HomeSectionContentFields({ section }: { section: HomeSection }) {
           <TextareaField label="Descripción" name="description" defaultValue={section.content.description} />
           <div className="grid gap-3 md:grid-cols-2">
             <FormField label="Botón principal" name="primary_button_label" defaultValue={section.content.primaryButtonLabel} />
-            <FormField label="Link principal" name="primary_button_href" defaultValue={section.content.primaryButtonHref} />
+            <LinkSelectField label="Link principal" name="primary_button_href" defaultValue={section.content.primaryButtonHref} />
             <FormField label="Botón secundario" name="secondary_button_label" defaultValue={section.content.secondaryButtonLabel} />
-            <FormField label="Link secundario" name="secondary_button_href" defaultValue={section.content.secondaryButtonHref} />
+            <LinkSelectField label="Link secundario" name="secondary_button_href" defaultValue={section.content.secondaryButtonHref} />
           </div>
         </>
       )
@@ -267,7 +400,21 @@ function HomeSectionContentFields({ section }: { section: HomeSection }) {
             <FormField label="Título" name="title" defaultValue={section.content.title} />
             <FormField label="Título destacado" name="highlighted_title" defaultValue={section.content.highlightedTitle} />
             <FormField label="Botón" name="button_label" defaultValue={section.content.buttonLabel} />
-            <FormField label="Link del botón" name="button_href" defaultValue={section.content.buttonHref} />
+            <LinkSelectField label="Link del botón" name="button_href" defaultValue={section.content.buttonHref} />
+          </div>
+          <div className="grid gap-3 rounded-md border border-border p-3 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <span className={`inline-flex rounded-sm border px-2 py-0.5 text-xs font-medium ${contentType.className}`}>
+                Tipo de contenido: {contentType.label}
+              </span>
+              <p className="mt-1 text-xs text-muted-foreground">{contentType.description}</p>
+            </div>
+            <FormField label="Tags a mostrar" name="filter_tags" defaultValue={section.content.filterTags} required={false} />
+            <StyleFilterSelectField label="Estilo a mostrar" name="filter_style" defaultValue={section.content.filterStyle} options={tattooStyles} />
+            <FormField label="Desde fecha" name="date_from" defaultValue={section.content.dateFrom} required={false} />
+            <FormField label="Hasta fecha" name="date_to" defaultValue={section.content.dateTo} required={false} />
+            <FormField label="Cantidad máxima" name="limit" defaultValue={String(section.content.limit)} />
+            <CheckboxField label="Solo destacados" name="featured_only" defaultChecked={section.content.featuredOnly} />
           </div>
         </>
       )
@@ -279,7 +426,18 @@ function HomeSectionContentFields({ section }: { section: HomeSection }) {
           <TextareaField label="Descripción" name="description" defaultValue={section.content.description} />
           <div className="grid gap-3 md:grid-cols-2">
             <FormField label="Botón" name="button_label" defaultValue={section.content.buttonLabel} />
-            <FormField label="Link del botón" name="button_href" defaultValue={section.content.buttonHref} />
+            <LinkSelectField label="Link del botón" name="button_href" defaultValue={section.content.buttonHref} />
+          </div>
+          <div className="grid gap-3 rounded-md border border-border p-3 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <span className={`inline-flex rounded-sm border px-2 py-0.5 text-xs font-medium ${contentType.className}`}>
+                Tipo de contenido: {contentType.label}
+              </span>
+              <p className="mt-1 text-xs text-muted-foreground">{contentType.description}</p>
+            </div>
+            <FormField label="Tags a mostrar" name="filter_tags" defaultValue={section.content.filterTags} required={false} />
+            <StyleFilterSelectField label="Estilo a mostrar" name="filter_style" defaultValue={section.content.filterStyle} options={flashStyles} />
+            <FormField label="Cantidad máxima" name="limit" defaultValue={String(section.content.limit)} />
           </div>
         </>
       )
@@ -319,7 +477,13 @@ function HomeSectionContentFields({ section }: { section: HomeSection }) {
   }
 }
 
-export function HomeSectionsManager({ flashPreviewItems, portfolioPreviewItems, sections }: HomeSectionsManagerProps) {
+export function HomeSectionsManager({
+  flashPreviewItems,
+  flashStyles,
+  portfolioPreviewItems,
+  sections,
+  tattooStyles,
+}: HomeSectionsManagerProps) {
   const [orderedSections, setOrderedSections] = useState(sections)
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dropPosition, setDropPosition] = useState<DropPosition | null>(null)
@@ -460,6 +624,14 @@ export function HomeSectionsManager({ flashPreviewItems, portfolioPreviewItems, 
     )
   }
 
+  function addSection(_formData: FormData, result?: { item?: unknown } | void) {
+    const item = result?.item
+
+    if (isHomeSection(item)) {
+      setOrderedSections((currentSections) => [...currentSections, item])
+    }
+  }
+
   return (
     <Card className="rounded-lg border border-border/70">
       <CardHeader>
@@ -468,6 +640,16 @@ export function HomeSectionsManager({ flashPreviewItems, portfolioPreviewItems, 
       </CardHeader>
       <CardContent>
         <div className="grid gap-3" aria-busy={isPending}>
+          <AdminActionForm action={createHomeSection} className="grid gap-2 rounded-md border border-border bg-muted/30 p-3 md:grid-cols-[1fr_auto]" onSuccess={addSection} resetOnSuccess>
+            <select className={fieldClass} name="type" defaultValue="featuredPortfolio">
+              <option value="featuredPortfolio">Tatuajes - nueva galería filtrable</option>
+              <option value="flashPreview">Diseños - nueva sección filtrable</option>
+            </select>
+            <Button type="submit" variant="outline">
+              Agregar sección
+            </Button>
+          </AdminActionForm>
+
           {message && <p className={isError ? "text-sm text-destructive" : "text-sm text-green-500"}>{message}</p>}
           {orderedSections.map((section, index) => (
             <div
@@ -524,7 +706,12 @@ export function HomeSectionsManager({ flashPreviewItems, portfolioPreviewItems, 
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-lg tracking-wide">{getSectionTitle(section)}</p>
-                    <span className="rounded-sm border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground">{getSectionSource(section)}</span>
+                    <span className={`rounded-sm border px-2 py-0.5 text-xs font-medium ${getSectionContentType(section).className}`}>
+                      Tipo: {getSectionContentType(section).label}
+                    </span>
+                    <span className="rounded-sm border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                      {getSectionSource(section)}
+                    </span>
                   </div>
                   <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{getSectionDescription(section)}</p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
@@ -575,7 +762,7 @@ export function HomeSectionsManager({ flashPreviewItems, portfolioPreviewItems, 
                   <AdminActionForm action={updateHomeSectionContent} className="grid gap-3" onSuccess={updateSectionContent}>
                     <input name="section_key" type="hidden" value={section.id} />
                     <input name="type" type="hidden" value={section.type} />
-                    <HomeSectionContentFields section={section} />
+                    <HomeSectionContentFields section={section} tattooStyles={tattooStyles} flashStyles={flashStyles} />
                     <div className="flex justify-end">
                       <Button type="submit" variant="outline">
                         Guardar contenido

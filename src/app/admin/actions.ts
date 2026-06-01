@@ -53,6 +53,25 @@ function parsePrice(price: FormDataEntryValue | null) {
   return parsedPrice
 }
 
+function parseTags(value: FormDataEntryValue | null) {
+  return String(value ?? "")
+    .split(",")
+    .map((tag) => tag.trim().toLowerCase())
+    .filter(Boolean)
+}
+
+function parsePositiveInteger(value: FormDataEntryValue | null, fallback: number) {
+  const parsedValue = Number(String(value ?? "").trim())
+
+  return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : fallback
+}
+
+function getPublishedDate(value: FormDataEntryValue | null) {
+  const rawDate = String(value ?? "").trim()
+
+  return /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : new Date().toISOString().slice(0, 10)
+}
+
 function normalizeInstagramUrl(value: FormDataEntryValue | null) {
   const rawValue = String(value ?? "").trim().replace(/^@/, "")
 
@@ -249,8 +268,10 @@ export async function createPortfolioItem(formData: FormData) {
       is_featured: formData.get("is_featured") === "on",
       is_active: formData.get("is_active") === "on",
       display_order: displayOrder,
+      published_date: getPublishedDate(formData.get("published_date")),
+      tags: parseTags(formData.get("tags")),
     })
-    .select("id,title,style,image_url,description,display_order,is_active,is_featured")
+    .select("id,title,style,image_url,description,display_order,is_active,is_featured,published_date,tags")
     .single()
 
   if (error) {
@@ -270,8 +291,28 @@ export async function createPortfolioItem(formData: FormData) {
       displayOrder: data.display_order ?? undefined,
       isActive: data.is_active ?? true,
       isFeatured: data.is_featured ?? false,
+      publishedDate: data.published_date,
+      tags: data.tags ?? [],
     },
   }
+}
+
+async function getNextHomeSectionDisplayOrder() {
+  const supabase = await createSupabaseAuthServerClient()
+
+  if (!supabase) {
+    return 10
+  }
+
+  const { data } = await supabase
+    .from("site_sections")
+    .select("display_order")
+    .eq("page_key", "home")
+    .order("display_order", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  return Number(data?.display_order ?? 0) + 10
 }
 
 export async function createFlashDesign(formData: FormData) {
@@ -305,12 +346,12 @@ export async function createFlashDesign(formData: FormData) {
       image_url: image.imageUrl,
       status: normalizeFlashStatus(formData.get("status")),
       style: String(formData.get("style") ?? ""),
-      placement: String(formData.get("placement") ?? ""),
       size: String(formData.get("size") ?? ""),
       is_active: formData.get("is_active") === "on",
       display_order: displayOrder,
+      tags: parseTags(formData.get("tags")),
     })
-    .select("id,name,price,image_url,status,style,placement,size,display_order,is_active")
+    .select("id,name,price,image_url,status,style,size,display_order,is_active,tags")
     .single()
 
   if (error) {
@@ -328,10 +369,10 @@ export async function createFlashDesign(formData: FormData) {
       image: data.image_url,
       status: data.status,
       style: data.style,
-      placement: data.placement,
       size: data.size,
       displayOrder: data.display_order ?? undefined,
       isActive: data.is_active ?? true,
+      tags: data.tags ?? [],
     },
   }
 }
@@ -382,9 +423,11 @@ export async function updatePortfolioItem(formData: FormData) {
       description: String(formData.get("description") ?? "") || null,
       is_featured: formData.get("is_featured") === "on",
       is_active: formData.get("is_active") === "on",
+      published_date: getPublishedDate(formData.get("published_date")),
+      tags: parseTags(formData.get("tags")),
     })
     .eq("id", id)
-    .select("id,title,style,image_url,description,display_order,is_active,is_featured")
+    .select("id,title,style,image_url,description,display_order,is_active,is_featured,published_date,tags")
     .single()
 
   if (error) {
@@ -404,6 +447,8 @@ export async function updatePortfolioItem(formData: FormData) {
       displayOrder: data.display_order ?? undefined,
       isActive: data.is_active ?? true,
       isFeatured: data.is_featured ?? false,
+      publishedDate: data.published_date,
+      tags: data.tags ?? [],
     },
   }
 }
@@ -539,6 +584,101 @@ export async function reorderHomeSections(sectionKeys: string[]) {
   return { ok: true }
 }
 
+function getNewHomeSectionDefaults(sectionType: string) {
+  if (sectionType === "featuredPortfolio") {
+    return {
+      content: {
+        eyebrow: "",
+        title: "",
+        highlightedTitle: "",
+        buttonLabel: "",
+        buttonHref: "",
+        dateFrom: "",
+        dateTo: "",
+        featuredOnly: false,
+        filterStyle: "",
+        filterTags: "",
+        limit: 6,
+      },
+      layout: {
+        variant: "carousel",
+      },
+      style: {
+        background: "card",
+      },
+    }
+  }
+
+  if (sectionType === "flashPreview") {
+    return {
+      content: {
+        eyebrow: "",
+        highlightedTitle: "",
+        description: "",
+        buttonLabel: "",
+        buttonHref: "",
+        filterStyle: "",
+        filterTags: "",
+        limit: 6,
+      },
+      layout: {
+        columnsDesktop: 3,
+        columnsMobile: 2,
+      },
+      style: {
+        background: "default",
+        frame: "paper",
+      },
+    }
+  }
+
+  return null
+}
+
+export async function createHomeSection(formData: FormData) {
+  const supabase = await createSupabaseAuthServerClient()
+  const sectionType = String(formData.get("type") ?? "")
+  const defaults = getNewHomeSectionDefaults(sectionType)
+
+  if (!supabase || !defaults) {
+    return { ok: false, error: "home-section-create" }
+  }
+
+  const displayOrder = await getNextHomeSectionDisplayOrder()
+  const sectionKey = `home-${sectionType}-${randomUUID()}`
+
+  const { error } = await supabase.from("site_sections").insert({
+    page_key: "home",
+    section_key: sectionKey,
+    type: sectionType,
+    enabled: true,
+    display_order: displayOrder,
+    content: defaults.content,
+    layout: defaults.layout,
+    style: defaults.style,
+    updated_at: new Date().toISOString(),
+  })
+
+  if (error) {
+    console.error("Home section create failed:", error.message)
+    return { ok: false, error: `home-section-create: ${error.message}` }
+  }
+
+  revalidatePath("/")
+  revalidatePath("/admin")
+
+  return {
+    ok: true,
+    item: {
+      id: sectionKey,
+      type: sectionType,
+      enabled: true,
+      order: displayOrder,
+      ...defaults,
+    },
+  }
+}
+
 function getRequiredString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim()
 }
@@ -572,6 +712,12 @@ function getHomeSectionContentFromForm(formData: FormData) {
         highlightedTitle: getRequiredString(formData, "highlighted_title"),
         buttonLabel: getRequiredString(formData, "button_label"),
         buttonHref: getRequiredString(formData, "button_href"),
+        dateFrom: getRequiredString(formData, "date_from"),
+        dateTo: getRequiredString(formData, "date_to"),
+        featuredOnly: formData.get("featured_only") === "on",
+        filterStyle: getRequiredString(formData, "filter_style"),
+        filterTags: getRequiredString(formData, "filter_tags"),
+        limit: parsePositiveInteger(formData.get("limit"), 4),
       }
     case "flashPreview":
       return {
@@ -580,6 +726,9 @@ function getHomeSectionContentFromForm(formData: FormData) {
         description: getRequiredString(formData, "description"),
         buttonLabel: getRequiredString(formData, "button_label"),
         buttonHref: getRequiredString(formData, "button_href"),
+        filterStyle: getRequiredString(formData, "filter_style"),
+        filterTags: getRequiredString(formData, "filter_tags"),
+        limit: parsePositiveInteger(formData.get("limit"), 6),
       }
     case "about":
       return {
@@ -739,8 +888,8 @@ export async function updateFlashDesign(formData: FormData) {
     image_url: image.imageUrl,
     status: normalizeFlashStatus(formData.get("status")),
     style: String(formData.get("style") ?? ""),
-    placement: String(formData.get("placement") ?? ""),
     size: String(formData.get("size") ?? ""),
+    tags: parseTags(formData.get("tags")),
   }
 
   const { data, error } = await supabase
@@ -750,7 +899,7 @@ export async function updateFlashDesign(formData: FormData) {
       is_active: formData.get("is_active") === "on",
     })
     .eq("id", id)
-    .select("id,name,price,image_url,status,style,placement,size,display_order,is_active")
+    .select("id,name,price,image_url,status,style,size,display_order,is_active,tags")
     .single()
 
   if (error) {
@@ -759,7 +908,7 @@ export async function updateFlashDesign(formData: FormData) {
         .from("flash_designs")
         .update(updatePayload)
         .eq("id", id)
-        .select("id,name,price,image_url,status,style,placement,size,display_order")
+        .select("id,name,price,image_url,status,style,size,display_order,tags")
         .single()
 
       if (!retry.error) {
@@ -773,10 +922,10 @@ export async function updateFlashDesign(formData: FormData) {
             image: retry.data.image_url,
             status: retry.data.status,
             style: retry.data.style,
-            placement: retry.data.placement,
             size: retry.data.size,
             displayOrder: retry.data.display_order ?? undefined,
             isActive: true,
+            tags: retry.data.tags ?? [],
           },
         }
       }
@@ -796,10 +945,10 @@ export async function updateFlashDesign(formData: FormData) {
       image: data.image_url,
       status: data.status,
       style: data.style,
-      placement: data.placement,
       size: data.size,
       displayOrder: data.display_order ?? undefined,
       isActive: data.is_active ?? true,
+      tags: data.tags ?? [],
     },
   }
 }

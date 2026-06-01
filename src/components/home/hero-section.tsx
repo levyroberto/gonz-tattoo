@@ -6,6 +6,7 @@ import Image from "next/image"
 import { useEffect, useState } from "react"
 
 import type { HeroSectionContent, HeroSectionLayout, HeroSectionStyle } from "@/data/home-sections"
+import { normalizeInternalLink } from "@/lib/internal-links"
 
 const HERO_VISIT_COUNT_KEY = "gonz-hero-visit-count"
 
@@ -88,13 +89,13 @@ export function HeroSection({ content, layout, style }: HeroSectionProps) {
         {(hasPrimaryButton || hasSecondaryButton) && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }} className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             {hasPrimaryButton && (
-              <Link href={content.primaryButtonHref} className="group relative px-8 py-4 bg-primary text-primary-foreground font-sans text-xl tracking-widest uppercase overflow-hidden transition-all duration-300 hover:shadow-[0_0_20px_oklch(0.55_0.16_50/0.4),0_0_40px_oklch(0.45_0.18_25/0.2)]">
+              <Link href={normalizeInternalLink(content.primaryButtonHref)} className="group relative px-8 py-4 bg-primary text-primary-foreground font-sans text-xl tracking-widest uppercase overflow-hidden transition-all duration-300 hover:shadow-[0_0_20px_oklch(0.55_0.16_50/0.4),0_0_40px_oklch(0.45_0.18_25/0.2)]">
                 <span className="relative z-10">{content.primaryButtonLabel}</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-accent/30 to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </Link>
             )}
             {hasSecondaryButton && (
-              <a href={content.secondaryButtonHref} className="px-8 py-4 border-2 border-secondary text-secondary font-sans text-xl tracking-widest uppercase transition-all duration-300 hover:bg-secondary hover:text-secondary-foreground hover:shadow-[0_0_15px_oklch(0.55_0.12_85/0.3)]">
+              <a href={normalizeInternalLink(content.secondaryButtonHref)} className="px-8 py-4 border-2 border-secondary text-secondary font-sans text-xl tracking-widest uppercase transition-all duration-300 hover:bg-secondary hover:text-secondary-foreground hover:shadow-[0_0_15px_oklch(0.55_0.12_85/0.3)]">
                 {content.secondaryButtonLabel}
               </a>
             )}

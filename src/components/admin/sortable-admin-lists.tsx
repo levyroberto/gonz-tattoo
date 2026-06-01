@@ -195,6 +195,8 @@ export function SortablePortfolioList({
               description: String(formData.get("description") ?? "") || undefined,
               isActive: formData.get("is_active") === "on",
               isFeatured: formData.get("is_featured") === "on",
+              publishedDate: String(formData.get("published_date") ?? item.publishedDate),
+              tags: String(formData.get("tags") ?? "").split(",").map((tag) => tag.trim()).filter(Boolean),
             }
           : item
       )
@@ -350,8 +352,10 @@ export function SortablePortfolioList({
                 <input name="id" type="hidden" value={item.id} />
                 <input className={fieldClass} name="title" defaultValue={item.title} required />
                 <TattooStyleSelect className={fieldClass} defaultValue={item.style} styles={tattooStyles} />
+                <input className={fieldClass} name="published_date" type="date" defaultValue={item.publishedDate ?? new Date().toISOString().slice(0, 10)} />
                 <ImageInput defaultUrl={item.image} />
                 <textarea className={tallFieldClass} name="description" defaultValue={item.description ?? ""} />
+                <input className={fieldClass} name="tags" defaultValue={(item.tags ?? []).join(", ")} placeholder="Tags separados por coma" />
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap gap-3">
                     <ActiveToggle defaultChecked={item.isFeatured ?? false} label="Destacado" name="is_featured" />
@@ -430,10 +434,10 @@ export function SortableFlashList({ items: orderedItems, onItemsChange: setOrder
               price: Number(formData.get("price") ?? item.price),
               style: String(formData.get("style") ?? item.style),
               image: String(formData.get("image_url") || item.image),
-              placement: String(formData.get("placement") ?? item.placement),
               size: String(formData.get("size") ?? item.size),
               status: String(formData.get("status") ?? item.status) as FlashDesign["status"],
               isActive: formData.get("is_active") === "on",
+              tags: String(formData.get("tags") ?? "").split(",").map((tag) => tag.trim()).filter(Boolean),
             }
           : item
       )
@@ -598,10 +602,8 @@ export function SortableFlashList({ items: orderedItems, onItemsChange: setOrder
                   <input className={fieldClass} name="style" defaultValue={item.style} required />
                 </div>
                 <ImageInput defaultUrl={item.image} />
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <input className={fieldClass} name="placement" defaultValue={item.placement} required />
-                  <input className={fieldClass} name="size" defaultValue={item.size} required />
-                </div>
+                <input className={fieldClass} name="tags" defaultValue={(item.tags ?? []).join(", ")} placeholder="Tags separados por coma" />
+                <input className={fieldClass} name="size" defaultValue={item.size} required />
                 <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                   <select className={fieldClass} name="status" defaultValue={item.status}>
                     <option value="Disponible">Disponible</option>
