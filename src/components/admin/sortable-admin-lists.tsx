@@ -403,26 +403,26 @@ export function SortablePortfolioList({
                 <input name="id" type="hidden" value={item.id} />
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div className="grid gap-2">
-                    <LabeledField label="Título">
+                    <LabeledField label="Título" compact>
                       <input className={fieldClass} name="title" defaultValue={item.title} />
                     </LabeledField>
                     <FieldError name="title" className={errorIndentClass} />
-                    <LabeledField label="Estilo">
+                    <LabeledField label="Estilo" compact>
                       <TattooStyleSelect className={fieldClass} defaultValue={item.style} styles={tattooStyles} />
                     </LabeledField>
-                    <LabeledField label="Fecha">
+                    <LabeledField label="Fecha" compact>
                       <input className={fieldClass} name="published_date" type="date" defaultValue={item.publishedDate ?? new Date().toISOString().slice(0, 10)} />
                     </LabeledField>
-                    <LabeledField label="Imagen">
+                    <LabeledField label="Imagen" compact>
                       <ImageInput defaultUrl={item.image} />
                     </LabeledField>
                     <FieldError name="image" className={errorIndentClass} />
-                    <LabeledField label="Descripción" alignTop>
+                    <LabeledField label="Descripción" alignTop compact>
                       <textarea className={tallFieldClass} name="description" defaultValue={item.description ?? ""} />
                     </LabeledField>
                   </div>
                   <div className="grid content-start gap-2">
-                    <LabeledField label="Tags" alignTop>
+                    <LabeledField label="Tags" alignTop compact>
                       <TagInputField className={fieldClass} defaultValue={(item.tags ?? []).join(", ")} placeholder="Agregar tag" />
                     </LabeledField>
                     <ActiveToggle defaultChecked={item.isFeatured ?? false} label="Destacado" name="is_featured" />
@@ -659,29 +659,29 @@ export function SortableFlashList({
                 <input name="id" type="hidden" value={item.id} />
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div className="grid gap-2">
-                    <LabeledField label="Nombre">
+                    <LabeledField label="Nombre" compact>
                       <input className={fieldClass} name="name" defaultValue={item.name} />
                     </LabeledField>
                     <FieldError name="name" className={errorIndentClass} />
-                    <LabeledField label="Precio">
+                    <LabeledField label="Precio" compact>
                       <input className={fieldClass} name="price" type="number" min="0" step="1" inputMode="numeric" defaultValue={item.price} />
                     </LabeledField>
-                    <LabeledField label="Estilo">
+                    <LabeledField label="Estilo" compact>
                       <input className={fieldClass} name="style" defaultValue={item.style} />
                     </LabeledField>
-                    <LabeledField label="Imagen">
+                    <LabeledField label="Imagen" compact>
                       <ImageInput defaultUrl={item.image} />
                     </LabeledField>
                     <FieldError name="image" className={errorIndentClass} />
                   </div>
                   <div className="grid content-start gap-2">
-                    <LabeledField label="Tags" alignTop>
+                    <LabeledField label="Tags" alignTop compact>
                       <TagInputField className={fieldClass} defaultValue={(item.tags ?? []).join(", ")} placeholder="Agregar tag" />
                     </LabeledField>
-                    <LabeledField label="Tamaño">
+                    <LabeledField label="Tamaño" compact>
                       <input className={fieldClass} name="size" defaultValue={item.size} />
                     </LabeledField>
-                    <LabeledField label="Estado">
+                    <LabeledField label="Estado" compact>
                       <select className={fieldClass} name="status" defaultValue={item.status}>
                         <option value="Disponible">Disponible</option>
                         <option value="Reservado">Reservado</option>

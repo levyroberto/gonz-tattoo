@@ -12,7 +12,7 @@ export function ActiveToggle({ defaultChecked = true, label = "Activo", name = "
   const [isChecked, setIsChecked] = useState(defaultChecked)
 
   return (
-    <label className="flex h-9 cursor-pointer items-center gap-3 rounded-md border border-border px-3 text-sm text-muted-foreground">
+    <label className="inline-flex h-9 w-max max-w-full self-start justify-self-start cursor-pointer items-center gap-3 rounded-md border border-border px-3 text-sm text-muted-foreground">
       <input
         checked={isChecked}
         className="sr-only"
