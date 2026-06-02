@@ -1,7 +1,25 @@
 "use client"
 
-import { ChevronDown, GripVertical, MoveDown, MoveUp } from "lucide-react"
-import { type Dispatch, type DragEvent, type SetStateAction, useState, useTransition } from "react"
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { ChevronDown, GripVertical } from "lucide-react"
+import { type Dispatch, type ReactNode, type SetStateAction, useState, useTransition } from "react"
 
 import {
   deleteFlashDesign,
@@ -15,6 +33,7 @@ import { AdminActionForm, FieldError, hasImageValue, type RequiredFieldRule } fr
 import { ActiveToggle } from "@/components/admin/active-toggle"
 import { ImageInput } from "@/components/admin/image-input"
 import { LabeledField } from "@/components/admin/labeled-field"
+import { TagInputField } from "@/components/admin/tag-input-field"
 import { TattooStyleSelect } from "@/components/admin/tattoo-style-select"
 import { Button } from "@/components/ui/button"
 import type { FlashDesign } from "@/data/flash-designs"
@@ -34,11 +53,6 @@ const flashRequiredFields: RequiredFieldRule[] = [
   { name: "image", message: "La imagen es obligatoria.", check: hasImageValue },
 ]
 
-type DropPosition = {
-  id: number
-  edge: "before" | "after"
-}
-
 export type AdminStatusFilter = "all" | "active" | "inactive"
 
 function matchesStatusFilter(isActive: boolean | undefined, filter: AdminStatusFilter) {
@@ -53,34 +67,19 @@ function matchesStatusFilter(isActive: boolean | undefined, filter: AdminStatusF
   return true
 }
 
-function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
-  const nextItems = [...items]
-  const [movedItem] = nextItems.splice(fromIndex, 1)
-  nextItems.splice(toIndex, 0, movedItem)
-  return nextItems
+// function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
+//   const nextItems = [...items]
+//   const [movedItem] = nextItems.splice(fromIndex, 1)
+//   nextItems.splice(toIndex, 0, movedItem)
+//   return nextItems
+// }
+
+function getSortableItemId(itemId: number) {
+  return `item-${itemId}`
 }
 
-function getDropEdge(event: DragEvent<HTMLElement>) {
-  const rect = event.currentTarget.getBoundingClientRect()
-  const offsetY = event.clientY - rect.top
-
-  return offsetY < rect.height / 2 ? "before" : "after"
-}
-
-function getTargetIndex(fromIndex: number, targetIndex: number, edge: DropPosition["edge"]) {
-  const targetWithEdge = edge === "after" ? targetIndex + 1 : targetIndex
-
-  return fromIndex < targetWithEdge ? targetWithEdge - 1 : targetWithEdge
-}
-
-function DropPlaceholder({ tone }: { tone: "primary" | "secondary" }) {
-  return (
-    <div
-      className={`h-12 rounded-md border-2 border-dashed ${
-        tone === "primary" ? "border-primary bg-primary/10" : "border-secondary bg-secondary/10"
-      }`}
-    />
-  )
+function getItemIdFromSortableId(sortableId: string | number) {
+  return Number(String(sortableId).replace(/^item-/, ""))
 }
 
 function StatusBadge({ isActive }: { isActive?: boolean }) {
@@ -94,6 +93,33 @@ function StatusBadge({ isActive }: { isActive?: boolean }) {
     >
       {isActive ? "Activo" : "Inactivo"}
     </span>
+  )
+}
+
+type SortableItemFrameRenderProps = {
+  attributes: ReturnType<typeof useSortable>["attributes"]
+  isDragging: boolean
+  listeners: ReturnType<typeof useSortable>["listeners"]
+  setActivatorNodeRef: ReturnType<typeof useSortable>["setActivatorNodeRef"]
+}
+
+function SortableItemFrame({
+  children,
+  id,
+}: {
+  children: (props: SortableItemFrameRenderProps) => ReactNode
+  id: string
+}) {
+  const { attributes, isDragging, listeners, setActivatorNodeRef, setNodeRef, transform, transition } = useSortable({ id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="grid gap-2">
+      {children({ attributes, isDragging, listeners, setActivatorNodeRef })}
+    </div>
   )
 }
 
@@ -118,50 +144,68 @@ function AdminItemThumbnail({ alt, src }: { alt: string; src?: string }) {
   )
 }
 
-function MobileMoveButtons({
-  canMoveDown,
-  canMoveUp,
-  itemName,
-  onMoveDown,
-  onMoveUp,
-}: {
-  canMoveDown: boolean
-  canMoveUp: boolean
-  itemName: string
-  onMoveDown: () => void
-  onMoveUp: () => void
-}) {
+function TagBadges({ tags }: { tags?: string[] }) {
+  const visibleTags = (tags ?? []).filter(Boolean)
+
+  if (visibleTags.length === 0) {
+    return null
+  }
+
   return (
-    <div className="grid shrink-0 grid-cols-2 gap-1 md:hidden">
-      <button
-        type="button"
-        aria-label={`Subir ${itemName}`}
-        className="flex size-8 cursor-pointer items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
-        disabled={!canMoveUp}
-        onClick={(event) => {
-          event.preventDefault()
-          event.stopPropagation()
-          onMoveUp()
-        }}
-      >
-        <MoveUp className="size-4" aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        aria-label={`Bajar ${itemName}`}
-        className="flex size-8 cursor-pointer items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
-        disabled={!canMoveDown}
-        onClick={(event) => {
-          event.preventDefault()
-          event.stopPropagation()
-          onMoveDown()
-        }}
-      >
-        <MoveDown className="size-4" aria-hidden="true" />
-      </button>
+    <div className="mt-1 flex flex-wrap gap-1.5">
+      {visibleTags.map((tag) => (
+        <span key={tag} className="rounded-sm border border-border/70 px-2 py-0.5 text-xs text-muted-foreground">
+          {tag}
+        </span>
+      ))}
     </div>
   )
 }
+
+// function MobileMoveButtons({
+//   canMoveDown,
+//   canMoveUp,
+//   itemName,
+//   onMoveDown,
+//   onMoveUp,
+// }: {
+//   canMoveDown: boolean
+//   canMoveUp: boolean
+//   itemName: string
+//   onMoveDown: () => void
+//   onMoveUp: () => void
+// }) {
+//   return (
+//     <div className="grid shrink-0 grid-cols-2 gap-1 md:hidden">
+//       <button
+//         type="button"
+//         aria-label={`Subir ${itemName}`}
+//         className="flex size-8 cursor-pointer items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+//         disabled={!canMoveUp}
+//         onClick={(event) => {
+//           event.preventDefault()
+//           event.stopPropagation()
+//           onMoveUp()
+//         }}
+//       >
+//         <MoveUp className="size-4" aria-hidden="true" />
+//       </button>
+//       <button
+//         type="button"
+//         aria-label={`Bajar ${itemName}`}
+//         className="flex size-8 cursor-pointer items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+//         disabled={!canMoveDown}
+//         onClick={(event) => {
+//           event.preventDefault()
+//           event.stopPropagation()
+//           onMoveDown()
+//         }}
+//       >
+//         <MoveDown className="size-4" aria-hidden="true" />
+//       </button>
+//     </div>
+//   )
+// }
 
 type SortablePortfolioListProps = {
   items: Tattoo[]
@@ -176,12 +220,15 @@ export function SortablePortfolioList({
   tattooStyles,
   statusFilter = "all",
 }: SortablePortfolioListProps) {
-  const [draggedId, setDraggedId] = useState<number | null>(null)
-  const [dropPosition, setDropPosition] = useState<DropPosition | null>(null)
   const [openItemId, setOpenItemId] = useState<number | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isError, setIsError] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
 
   function persistOrder(nextItems: Tattoo[]) {
     setMessage(null)
@@ -237,72 +284,42 @@ export function SortablePortfolioList({
     setOrderedItems((currentItems) => currentItems.filter((item) => item.id !== id))
   }
 
-  function handleDrop(targetId: number) {
-    if (draggedId === null || draggedId === targetId) {
-      setDropPosition(null)
+  function handleDragEnd(event: DragEndEvent) {
+    const activeId = getItemIdFromSortableId(event.active.id)
+    const overId = event.over ? getItemIdFromSortableId(event.over.id) : null
+
+    if (overId === null || activeId === overId) {
       return
     }
 
-    const fromIndex = orderedItems.findIndex((item) => item.id === draggedId)
-    const toIndex = orderedItems.findIndex((item) => item.id === targetId)
+    const fromIndex = orderedItems.findIndex((item) => item.id === activeId)
+    const toIndex = orderedItems.findIndex((item) => item.id === overId)
 
     if (fromIndex < 0 || toIndex < 0) {
       return
     }
 
-    const nextIndex = getTargetIndex(fromIndex, toIndex, dropPosition?.edge ?? "before")
-    const nextItems = moveItem(orderedItems, fromIndex, nextIndex)
-
-    setDropPosition(null)
-    setOrderedItems(nextItems)
-    persistOrder(nextItems)
-  }
-
-  function handleDragStart(event: DragEvent<HTMLButtonElement>, itemId: number) {
-    const ghost = document.createElement("div")
-
-    ghost.textContent = "Mover"
-    ghost.style.position = "fixed"
-    ghost.style.top = "-1000px"
-    ghost.style.left = "-1000px"
-    ghost.style.padding = "8px 12px"
-    ghost.style.borderRadius = "6px"
-    ghost.style.background = "black"
-    ghost.style.color = "white"
-    ghost.style.fontSize = "12px"
-    document.body.appendChild(ghost)
-    event.dataTransfer.setDragImage(ghost, 0, 0)
-    window.setTimeout(() => ghost.remove(), 0)
-    setDraggedId(itemId)
-    setDropPosition(null)
-    setOpenItemId(null)
-  }
-
-  function handleDragOver(event: DragEvent<HTMLElement>, itemId: number) {
-    event.preventDefault()
-
-    if (draggedId === null || draggedId === itemId) {
-      setDropPosition(null)
-      return
-    }
-
-    setDropPosition({ id: itemId, edge: getDropEdge(event) })
-  }
-
-  function moveItemByStep(itemId: number, direction: -1 | 1) {
-    const fromIndex = orderedItems.findIndex((item) => item.id === itemId)
-    const toIndex = fromIndex + direction
-
-    if (fromIndex < 0 || toIndex < 0 || toIndex >= orderedItems.length) {
-      return
-    }
-
-    const nextItems = moveItem(orderedItems, fromIndex, toIndex)
+    const nextItems = arrayMove(orderedItems, fromIndex, toIndex)
 
     setOpenItemId(null)
     setOrderedItems(nextItems)
     persistOrder(nextItems)
   }
+
+  // function moveItemByStep(itemId: number, direction: -1 | 1) {
+  //   const fromIndex = orderedItems.findIndex((item) => item.id === itemId)
+  //   const toIndex = fromIndex + direction
+  //
+  //   if (fromIndex < 0 || toIndex < 0 || toIndex >= orderedItems.length) {
+  //     return
+  //   }
+  //
+  //   const nextItems = moveItem(orderedItems, fromIndex, toIndex)
+  //
+  //   setOpenItemId(null)
+  //   setOrderedItems(nextItems)
+  //   persistOrder(nextItems)
+  // }
 
   const visibleItems = orderedItems
     .map((item, index) => ({ item, index }))
@@ -311,72 +328,74 @@ export function SortablePortfolioList({
   return (
     <div className="grid gap-2" aria-busy={isPending}>
       {message && <p className={isError ? "text-sm text-destructive" : "text-sm text-green-500"}>{message}</p>}
-      {visibleItems.map(({ item, index }) => (
-        <div
-          key={item.id}
-          className="grid gap-2"
-          onDragOver={(event) => handleDragOver(event, item.id)}
-          onDrop={() => handleDrop(item.id)}
-        >
-          {dropPosition?.id === item.id && dropPosition.edge === "before" && <DropPlaceholder tone="primary" />}
+      <DndContext
+        id="portfolio-sortable"
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={() => setOpenItemId(null)}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={visibleItems.map(({ item }) => getSortableItemId(item.id))} strategy={verticalListSortingStrategy}>
+          {visibleItems.map(({ item }) => (
+            <SortableItemFrame key={item.id} id={getSortableItemId(item.id)}>
+              {({ attributes, isDragging, listeners, setActivatorNodeRef }) => (
           <div
             className={`group rounded-md border bg-card transition-opacity ${
               item.isActive ? "border-border" : "border-dashed border-destructive/50 opacity-65"
             } ${
-              draggedId === item.id ? "opacity-40" : ""
+              isDragging ? "opacity-40" : ""
             }`}
           >
-            <div
-              className="flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-3 text-left"
-              onClick={() => setOpenItemId(openItemId === item.id ? null : item.id)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault()
-                  setOpenItemId(openItemId === item.id ? null : item.id)
-                }
-              }}
-              role="button"
-              tabIndex={0}
-            >
+            <div className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left">
               <div className="flex min-w-0 items-center gap-3">
                 <button
                   aria-label={`Mover ${item.title}`}
-                  className="hidden shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing md:block"
-                  draggable
+                  className="shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
+                  {...attributes}
+                  {...listeners}
                   onClick={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
                   }}
-                  onDragEnd={() => {
-                    setDraggedId(null)
-                    setDropPosition(null)
-                  }}
-                  onDragStart={(event) => handleDragStart(event, item.id)}
-                  onMouseDown={(event) => event.stopPropagation()}
+                  ref={setActivatorNodeRef}
+                  style={{ touchAction: "none" }}
                   type="button"
                 >
                   <GripVertical className="size-4" aria-hidden="true" />
                 </button>
-                <MobileMoveButtons
+                {/* <MobileMoveButtons
                   canMoveDown={index < orderedItems.length - 1}
                   canMoveUp={index > 0}
                   itemName={item.title}
                   onMoveDown={() => moveItemByStep(item.id, 1)}
                   onMoveUp={() => moveItemByStep(item.id, -1)}
-                />
+                /> */}
                 <AdminItemThumbnail src={item.image} alt={item.title} />
-                <div className="min-w-0">
-                  <p className="truncate text-lg tracking-wide transition-colors hover:text-primary">{item.title}</p>
-                </div>
+                <button
+                  type="button"
+                  className="min-w-0 cursor-pointer text-left"
+                  aria-expanded={openItemId === item.id}
+                  onClick={() => setOpenItemId(openItemId === item.id ? null : item.id)}
+                >
+                  <span className="block truncate text-lg tracking-wide transition-colors hover:text-primary">{item.title}</span>
+                  <TagBadges tags={item.tags} />
+                </button>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <StatusBadge isActive={item.isActive} />
-                <ChevronDown
-                  className={`size-5 shrink-0 text-muted-foreground transition-transform ${
-                    openItemId === item.id ? "rotate-180" : ""
-                  }`}
-                  aria-hidden="true"
-                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Editar ${item.title}`}
+                  aria-expanded={openItemId === item.id}
+                  onClick={() => setOpenItemId(openItemId === item.id ? null : item.id)}
+                >
+                  <ChevronDown
+                    className={`transition-transform ${openItemId === item.id ? "rotate-180" : ""}`}
+                    aria-hidden="true"
+                  />
+                </Button>
               </div>
             </div>
             {openItemId === item.id && <div className="grid gap-3 border-t border-border p-3">
@@ -399,8 +418,8 @@ export function SortablePortfolioList({
                 <LabeledField label="Descripción" alignTop>
                   <textarea className={tallFieldClass} name="description" defaultValue={item.description ?? ""} />
                 </LabeledField>
-                <LabeledField label="Tags">
-                  <input className={fieldClass} name="tags" defaultValue={(item.tags ?? []).join(", ")} placeholder="Separados por coma" />
+                <LabeledField label="Tags" alignTop>
+                  <TagInputField className={fieldClass} defaultValue={(item.tags ?? []).join(", ")} placeholder="Agregar tag" />
                 </LabeledField>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap gap-3">
@@ -427,9 +446,11 @@ export function SortablePortfolioList({
               </div>
             </div>}
           </div>
-          {dropPosition?.id === item.id && dropPosition.edge === "after" && <DropPlaceholder tone="primary" />}
-        </div>
-      ))}
+              )}
+            </SortableItemFrame>
+          ))}
+        </SortableContext>
+      </DndContext>
       {statusFilter !== "all" && visibleItems.length === 0 && (
         <p className="text-sm text-muted-foreground">No hay tatuajes {statusFilter === "active" ? "activos" : "inactivos"}.</p>
       )}
@@ -448,12 +469,15 @@ export function SortableFlashList({
   onItemsChange: setOrderedItems,
   statusFilter = "all",
 }: SortableFlashListProps) {
-  const [draggedId, setDraggedId] = useState<number | null>(null)
-  const [dropPosition, setDropPosition] = useState<DropPosition | null>(null)
   const [openItemId, setOpenItemId] = useState<number | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isError, setIsError] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
 
   function persistOrder(nextItems: FlashDesign[]) {
     setMessage(null)
@@ -509,72 +533,42 @@ export function SortableFlashList({
     setOrderedItems((currentItems) => currentItems.filter((item) => item.id !== id))
   }
 
-  function handleDrop(targetId: number) {
-    if (draggedId === null || draggedId === targetId) {
-      setDropPosition(null)
+  function handleDragEnd(event: DragEndEvent) {
+    const activeId = getItemIdFromSortableId(event.active.id)
+    const overId = event.over ? getItemIdFromSortableId(event.over.id) : null
+
+    if (overId === null || activeId === overId) {
       return
     }
 
-    const fromIndex = orderedItems.findIndex((item) => item.id === draggedId)
-    const toIndex = orderedItems.findIndex((item) => item.id === targetId)
+    const fromIndex = orderedItems.findIndex((item) => item.id === activeId)
+    const toIndex = orderedItems.findIndex((item) => item.id === overId)
 
     if (fromIndex < 0 || toIndex < 0) {
       return
     }
 
-    const nextIndex = getTargetIndex(fromIndex, toIndex, dropPosition?.edge ?? "before")
-    const nextItems = moveItem(orderedItems, fromIndex, nextIndex)
-
-    setDropPosition(null)
-    setOrderedItems(nextItems)
-    persistOrder(nextItems)
-  }
-
-  function handleDragStart(event: DragEvent<HTMLButtonElement>, itemId: number) {
-    const ghost = document.createElement("div")
-
-    ghost.textContent = "Mover"
-    ghost.style.position = "fixed"
-    ghost.style.top = "-1000px"
-    ghost.style.left = "-1000px"
-    ghost.style.padding = "8px 12px"
-    ghost.style.borderRadius = "6px"
-    ghost.style.background = "black"
-    ghost.style.color = "white"
-    ghost.style.fontSize = "12px"
-    document.body.appendChild(ghost)
-    event.dataTransfer.setDragImage(ghost, 0, 0)
-    window.setTimeout(() => ghost.remove(), 0)
-    setDraggedId(itemId)
-    setDropPosition(null)
-    setOpenItemId(null)
-  }
-
-  function handleDragOver(event: DragEvent<HTMLElement>, itemId: number) {
-    event.preventDefault()
-
-    if (draggedId === null || draggedId === itemId) {
-      setDropPosition(null)
-      return
-    }
-
-    setDropPosition({ id: itemId, edge: getDropEdge(event) })
-  }
-
-  function moveItemByStep(itemId: number, direction: -1 | 1) {
-    const fromIndex = orderedItems.findIndex((item) => item.id === itemId)
-    const toIndex = fromIndex + direction
-
-    if (fromIndex < 0 || toIndex < 0 || toIndex >= orderedItems.length) {
-      return
-    }
-
-    const nextItems = moveItem(orderedItems, fromIndex, toIndex)
+    const nextItems = arrayMove(orderedItems, fromIndex, toIndex)
 
     setOpenItemId(null)
     setOrderedItems(nextItems)
     persistOrder(nextItems)
   }
+
+  // function moveItemByStep(itemId: number, direction: -1 | 1) {
+  //   const fromIndex = orderedItems.findIndex((item) => item.id === itemId)
+  //   const toIndex = fromIndex + direction
+  //
+  //   if (fromIndex < 0 || toIndex < 0 || toIndex >= orderedItems.length) {
+  //     return
+  //   }
+  //
+  //   const nextItems = moveItem(orderedItems, fromIndex, toIndex)
+  //
+  //   setOpenItemId(null)
+  //   setOrderedItems(nextItems)
+  //   persistOrder(nextItems)
+  // }
 
   const visibleItems = orderedItems
     .map((item, index) => ({ item, index }))
@@ -583,77 +577,79 @@ export function SortableFlashList({
   return (
     <div className="grid gap-2" aria-busy={isPending}>
       {message && <p className={isError ? "text-sm text-destructive" : "text-sm text-green-500"}>{message}</p>}
-      {visibleItems.map(({ item, index }) => (
-        <div
-          key={item.id}
-          className="grid gap-2"
-          onDragOver={(event) => handleDragOver(event, item.id)}
-          onDrop={() => handleDrop(item.id)}
-        >
-          {dropPosition?.id === item.id && dropPosition.edge === "before" && <DropPlaceholder tone="secondary" />}
+      <DndContext
+        id="flash-sortable"
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={() => setOpenItemId(null)}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={visibleItems.map(({ item }) => getSortableItemId(item.id))} strategy={verticalListSortingStrategy}>
+          {visibleItems.map(({ item }) => (
+            <SortableItemFrame key={item.id} id={getSortableItemId(item.id)}>
+              {({ attributes, isDragging, listeners, setActivatorNodeRef }) => (
           <div
             className={`group rounded-md border bg-card transition-opacity ${
               item.isActive ? "border-border" : "border-dashed border-destructive/50 opacity-65"
             } ${
-              draggedId === item.id ? "opacity-40" : ""
+              isDragging ? "opacity-40" : ""
             }`}
           >
-            <div
-              className="flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-3 text-left"
-              onClick={() => setOpenItemId(openItemId === item.id ? null : item.id)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault()
-                  setOpenItemId(openItemId === item.id ? null : item.id)
-                }
-              }}
-              role="button"
-              tabIndex={0}
-            >
+            <div className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left">
               <div className="flex min-w-0 items-center gap-3">
                 <button
                   aria-label={`Mover ${item.name}`}
-                  className="hidden shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing md:block"
-                  draggable
+                  className="shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
+                  {...attributes}
+                  {...listeners}
                   onClick={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
                   }}
-                  onDragEnd={() => {
-                    setDraggedId(null)
-                    setDropPosition(null)
-                  }}
-                  onDragStart={(event) => handleDragStart(event, item.id)}
-                  onMouseDown={(event) => event.stopPropagation()}
+                  ref={setActivatorNodeRef}
+                  style={{ touchAction: "none" }}
                   type="button"
                 >
                   <GripVertical className="size-4" aria-hidden="true" />
                 </button>
-                <MobileMoveButtons
+                {/* <MobileMoveButtons
                   canMoveDown={index < orderedItems.length - 1}
                   canMoveUp={index > 0}
                   itemName={item.name}
                   onMoveDown={() => moveItemByStep(item.id, 1)}
                   onMoveUp={() => moveItemByStep(item.id, -1)}
-                />
+                /> */}
                 <AdminItemThumbnail src={item.image} alt={item.name} />
-                <div className="min-w-0">
+                <button
+                  type="button"
+                  className="min-w-0 cursor-pointer text-left"
+                  aria-expanded={openItemId === item.id}
+                  onClick={() => setOpenItemId(openItemId === item.id ? null : item.id)}
+                >
                   <div className="flex items-center gap-2">
                       <p className="truncate text-lg tracking-wide transition-colors hover:text-primary">{item.name}</p>
                       <p className="text-sm text-muted-foreground">
                         {item.status}
                       </p>
                   </div>
-                </div>
+                  <TagBadges tags={item.tags} />
+                </button>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <StatusBadge isActive={item.isActive} />
-                <ChevronDown
-                  className={`size-5 shrink-0 text-muted-foreground transition-transform ${
-                    openItemId === item.id ? "rotate-180" : ""
-                  }`}
-                  aria-hidden="true"
-                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Editar ${item.name}`}
+                  aria-expanded={openItemId === item.id}
+                  onClick={() => setOpenItemId(openItemId === item.id ? null : item.id)}
+                >
+                  <ChevronDown
+                    className={`transition-transform ${openItemId === item.id ? "rotate-180" : ""}`}
+                    aria-hidden="true"
+                  />
+                </Button>
               </div>
             </div>
             {openItemId === item.id && <div className="grid gap-3 border-t border-border p-3">
@@ -673,8 +669,8 @@ export function SortableFlashList({
                   <ImageInput defaultUrl={item.image} />
                 </LabeledField>
                 <FieldError name="image" className={errorIndentClass} />
-                <LabeledField label="Tags">
-                  <input className={fieldClass} name="tags" defaultValue={(item.tags ?? []).join(", ")} placeholder="Separados por coma" />
+                <LabeledField label="Tags" alignTop>
+                  <TagInputField className={fieldClass} defaultValue={(item.tags ?? []).join(", ")} placeholder="Agregar tag" />
                 </LabeledField>
                 <LabeledField label="Tamaño">
                   <input className={fieldClass} name="size" defaultValue={item.size} />
@@ -708,9 +704,11 @@ export function SortableFlashList({
             </div>
             </div>}
           </div>
-          {dropPosition?.id === item.id && dropPosition.edge === "after" && <DropPlaceholder tone="secondary" />}
-        </div>
-      ))}
+              )}
+            </SortableItemFrame>
+          ))}
+        </SortableContext>
+      </DndContext>
       {statusFilter !== "all" && visibleItems.length === 0 && (
         <p className="text-sm text-muted-foreground">No hay diseños {statusFilter === "active" ? "activos" : "inactivos"}.</p>
       )}

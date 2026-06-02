@@ -139,7 +139,14 @@ export function AdminActionForm({
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} onChange={handleChange} className={className} aria-busy={isPending}>
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      onChange={handleChange}
+      onInput={handleChange}
+      className={className}
+      aria-busy={isPending}
+    >
       <FieldErrorsContext.Provider value={fieldErrors}>{children}</FieldErrorsContext.Provider>
       {message && (
         <p className={isError ? "text-sm text-destructive" : "text-sm text-green-500"}>{message}</p>

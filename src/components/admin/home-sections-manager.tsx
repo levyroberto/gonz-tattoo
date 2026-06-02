@@ -1,7 +1,25 @@
 "use client"
 
-import { ChevronDown, Eye, EyeOff, GripVertical, MoveDown, MoveUp, Trash2 } from "lucide-react"
-import { type DragEvent, type FormEvent, type ReactNode, useState, useTransition } from "react"
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { ChevronDown, GripVertical, Plus, Trash2, X } from "lucide-react"
+import { type FormEvent, type ReactNode, useEffect, useRef, useState, useTransition } from "react"
 
 import { createHomeSection, deleteHomeSection, reorderHomeSections, updateHomeSectionContent, updateHomeSectionEnabled } from "@/app/admin/actions"
 import { AdminActionForm } from "@/components/admin/admin-action-form"
@@ -43,35 +61,13 @@ type HomeSectionsManagerProps = {
   sections: HomeSection[]
 }
 
-type DropPosition = {
-  id: string
-  edge: "before" | "after"
-}
-
-function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
-  const nextItems = [...items]
-  const [movedItem] = nextItems.splice(fromIndex, 1)
-
-  nextItems.splice(toIndex, 0, movedItem)
-  return nextItems
-}
-
-function getDropEdge(event: DragEvent<HTMLElement>) {
-  const rect = event.currentTarget.getBoundingClientRect()
-  const offsetY = event.clientY - rect.top
-
-  return offsetY < rect.height / 2 ? "before" : "after"
-}
-
-function getTargetIndex(fromIndex: number, targetIndex: number, edge: DropPosition["edge"]) {
-  const targetWithEdge = edge === "after" ? targetIndex + 1 : targetIndex
-
-  return fromIndex < targetWithEdge ? targetWithEdge - 1 : targetWithEdge
-}
-
-function DropPlaceholder() {
-  return <div className="h-12 rounded-md border-2 border-dashed border-primary bg-primary/10" />
-}
+// function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
+//   const nextItems = [...items]
+//   const [movedItem] = nextItems.splice(fromIndex, 1)
+//
+//   nextItems.splice(toIndex, 0, movedItem)
+//   return nextItems
+// }
 
 function StatusBadge({ isActive }: { isActive?: boolean }) {
   return (
@@ -84,6 +80,67 @@ function StatusBadge({ isActive }: { isActive?: boolean }) {
     >
       {isActive ? "Activo" : "Inactivo"}
     </span>
+  )
+}
+
+function SectionActiveToggle({
+  disabled,
+  isActive,
+  onChange,
+}: {
+  disabled: boolean
+  isActive: boolean
+  onChange: (isActive: boolean) => void
+}) {
+  return (
+    <label className="flex h-9 cursor-pointer items-center gap-3 rounded-md border border-border px-3 text-sm text-muted-foreground has-disabled:cursor-not-allowed has-disabled:opacity-60">
+      <input
+        checked={isActive}
+        className="sr-only"
+        disabled={disabled}
+        onChange={(event) => onChange(event.currentTarget.checked)}
+        type="checkbox"
+      />
+      <span
+        className={`relative h-5 w-9 rounded-full ring-1 ring-border transition-colors ${
+          isActive ? "bg-green-500/80" : "bg-muted"
+        }`}
+      >
+        <span
+          className={`absolute left-0.5 top-0.5 size-4 rounded-full bg-foreground transition-transform ${
+            isActive ? "translate-x-4" : ""
+          }`}
+        />
+      </span>
+      {isActive ? "Activo" : "Inactivo"}
+    </label>
+  )
+}
+
+type SortableSectionFrameRenderProps = {
+  attributes: ReturnType<typeof useSortable>["attributes"]
+  isDragging: boolean
+  listeners: ReturnType<typeof useSortable>["listeners"]
+  setActivatorNodeRef: ReturnType<typeof useSortable>["setActivatorNodeRef"]
+}
+
+function SortableSectionFrame({
+  children,
+  id,
+}: {
+  children: (props: SortableSectionFrameRenderProps) => ReactNode
+  id: string
+}) {
+  const { attributes, isDragging, listeners, setActivatorNodeRef, setNodeRef, transform, transition } = useSortable({ id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="grid gap-2">
+      {children({ attributes, isDragging, listeners, setActivatorNodeRef })}
+    </div>
   )
 }
 
@@ -221,6 +278,107 @@ function FormField({
   )
 }
 
+function parseTagFilterValue(value: string) {
+  return value
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+}
+
+function TagFilterField({
+  defaultValue,
+  label,
+  name,
+}: {
+  defaultValue: string
+  label: string
+  name: string
+}) {
+  const [tags, setTags] = useState(() => parseTagFilterValue(defaultValue))
+  const [draftTag, setDraftTag] = useState("")
+  const hiddenInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const hiddenInput = hiddenInputRef.current
+
+    hiddenInput?.dispatchEvent(new Event("change", { bubbles: true }))
+    hiddenInput?.dispatchEvent(new Event("input", { bubbles: true }))
+    hiddenInput?.form?.dispatchEvent(new Event("change", { bubbles: true }))
+    hiddenInput?.form?.dispatchEvent(new Event("input", { bubbles: true }))
+  }, [tags])
+
+  function addTag() {
+    const nextTag = draftTag.trim()
+
+    if (!nextTag) {
+      return
+    }
+
+    setTags((currentTags) =>
+      currentTags.some((tag) => tag.toLowerCase() === nextTag.toLowerCase())
+        ? currentTags
+        : [...currentTags, nextTag]
+    )
+    setDraftTag("")
+  }
+
+  function removeTag(tagToRemove: string) {
+    setTags((currentTags) => currentTags.filter((tag) => tag !== tagToRemove))
+  }
+
+  return (
+    <label className="grid gap-1 text-sm text-muted-foreground">
+      {label}
+      <input ref={hiddenInputRef} name={name} type="hidden" value={tags.join(", ")} readOnly />
+      <div className="grid gap-2">
+        {tags.map((tag) => (
+          <div key={tag} className="grid grid-cols-[1fr_auto] gap-2">
+            <input
+              className={`${fieldClass} disabled:opacity-75`}
+              value={tag}
+              disabled
+              aria-label={`Tag ${tag}`}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label={`Quitar tag ${tag}`}
+              onClick={() => removeTag(tag)}
+            >
+              <X aria-hidden="true" />
+            </Button>
+          </div>
+        ))}
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <input
+            className={fieldClass}
+            value={draftTag}
+            onChange={(event) => setDraftTag(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault()
+                addTag()
+              }
+            }}
+            placeholder="Agregar tag"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="border-green-500/50 text-green-400 hover:border-green-500 hover:text-green-300"
+            aria-label="Agregar tag"
+            onClick={addTag}
+          >
+            <Plus aria-hidden="true" />
+          </Button>
+        </div>
+      </div>
+    </label>
+  )
+}
+
 const buttonPreviewClass: Record<ButtonPreviewVariant, string> = {
   primaryFilled: "border-2 border-primary bg-primary text-primary-foreground placeholder:text-primary-foreground/50",
   primaryOutline: "border-2 border-primary bg-transparent text-primary placeholder:text-primary/50",
@@ -243,7 +401,12 @@ function ButtonPreviewField({
 }) {
   return (
     <label className="grid gap-1 text-sm text-muted-foreground">
-      {label}
+      <span className="flex flex-wrap items-center gap-2">
+        {label} - vista previa
+        <span className="rounded-sm border border-border bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+          Preview
+        </span>
+      </span>
       <input
         className={`h-10 w-full rounded-md px-4 text-center font-sans text-sm uppercase tracking-widest outline-none transition-colors placeholder:normal-case placeholder:tracking-normal focus:ring-2 focus:ring-primary/40 ${buttonPreviewClass[variant]}`}
         name={name}
@@ -410,6 +573,10 @@ function SectionFieldControl({
     )
   }
 
+  if (field.key === "filterTags") {
+    return <TagFilterField label={field.label} name={field.formName} defaultValue={String(rawValue ?? "")} />
+  }
+
   switch (field.type) {
     case "image":
       return (
@@ -451,6 +618,40 @@ function SectionFieldControl({
   }
 }
 
+function getFilterSummaryBadges(section: HomeSection) {
+  const content = section.content as Record<string, unknown>
+  const badges: string[] = []
+  const filterTags = String(content.filterTags ?? "")
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+  const filterStyle = String(content.filterStyle ?? "").trim()
+  const dateFrom = String(content.dateFrom ?? "").trim()
+  const dateTo = String(content.dateTo ?? "").trim()
+
+  if (filterTags.length > 0) {
+    badges.push(`Tags: ${filterTags.join(", ")}`)
+  }
+
+  if (filterStyle) {
+    badges.push(`Estilo: ${filterStyle}`)
+  }
+
+  if (dateFrom) {
+    badges.push(`Desde: ${dateFrom}`)
+  }
+
+  if (dateTo) {
+    badges.push(`Hasta: ${dateTo}`)
+  }
+
+  if (content.featuredOnly === true) {
+    badges.push("Solo destacados")
+  }
+
+  return badges
+}
+
 function HomeSectionContentFields({
   flashStyles,
   section,
@@ -468,30 +669,48 @@ function HomeSectionContentFields({
 
   const mainFields = definition.fields.filter((field) => !field.inFilterBox)
   const filterFields = definition.fields.filter((field) => field.inFilterBox)
+  const filterSummaryBadges = getFilterSummaryBadges(section)
 
   return (
     <>
-      <div className="flex flex-wrap gap-3">
-        {mainFields.map((field) => (
-          <FieldWrapper key={field.formName} width={field.width}>
-            <SectionFieldControl field={field} section={section} tattooStyles={tattooStyles} flashStyles={flashStyles} />
-          </FieldWrapper>
-        ))}
-      </div>
-
-      {filterFields.length > 0 && (
-        <div className="flex flex-wrap gap-3 rounded-md border border-border p-3">
-          <div className="w-full">
-            <span className={`inline-flex rounded-sm border px-2 py-0.5 text-xs font-medium ${definition.badge.className}`}>
-              Tipo de contenido: {definition.badge.label}
-            </span>
-            <p className="mt-1 text-xs text-muted-foreground">{definition.badge.description}</p>
-          </div>
-          {filterFields.map((field) => (
+      <div className="grid gap-3">
+        <div className="border-b border-border pb-2">
+          <p className="text-sm uppercase tracking-wider text-foreground">Textos y apariencia</p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {mainFields.map((field) => (
             <FieldWrapper key={field.formName} width={field.width}>
               <SectionFieldControl field={field} section={section} tattooStyles={tattooStyles} flashStyles={flashStyles} />
             </FieldWrapper>
           ))}
+        </div>
+      </div>
+
+      {filterFields.length > 0 && (
+        <div className="grid gap-3">
+          <div className="flex flex-wrap items-center gap-2 border-b border-border pb-2">
+            <p className="text-sm uppercase tracking-wider text-foreground">Contenido mostrado</p>
+            <div className="flex flex-wrap gap-1.5">
+              {filterSummaryBadges.length > 0 ? (
+                filterSummaryBadges.map((badge) => (
+                  <span key={badge} className="rounded-sm border border-border/70 px-2 py-0.5 text-xs text-muted-foreground">
+                    {badge}
+                  </span>
+                ))
+              ) : (
+                <span className="rounded-sm border border-border/70 px-2 py-0.5 text-xs text-muted-foreground">
+                  Sin filtros
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {filterFields.map((field) => (
+              <FieldWrapper key={field.formName} width={field.width}>
+                <SectionFieldControl field={field} section={section} tattooStyles={tattooStyles} flashStyles={flashStyles} />
+              </FieldWrapper>
+            ))}
+          </div>
         </div>
       )}
     </>
@@ -506,14 +725,17 @@ export function HomeSectionsManager({
   tattooStyles,
 }: HomeSectionsManagerProps) {
   const [orderedSections, setOrderedSections] = useState(sections)
-  const [draggedId, setDraggedId] = useState<string | null>(null)
-  const [dropPosition, setDropPosition] = useState<DropPosition | null>(null)
   const [openSectionId, setOpenSectionId] = useState<string | null>(null)
   const [draftContent, setDraftContent] = useState<Record<string, unknown> | null>(null)
   const [deletingSectionId, setDeletingSectionId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isError, setIsError] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
 
   function persistOrder(nextSections: HomeSection[]) {
     setMessage(null)
@@ -532,69 +754,38 @@ export function HomeSectionsManager({
     })
   }
 
-  function moveSection(sectionId: string, direction: -1 | 1) {
-    const fromIndex = orderedSections.findIndex((section) => section.id === sectionId)
-    const toIndex = fromIndex + direction
+  // function moveSection(sectionId: string, direction: -1 | 1) {
+  //   const fromIndex = orderedSections.findIndex((section) => section.id === sectionId)
+  //   const toIndex = fromIndex + direction
+  //
+  //   if (fromIndex < 0 || toIndex < 0 || toIndex >= orderedSections.length) {
+  //     return
+  //   }
+  //
+  //   const nextSections = moveItem(orderedSections, fromIndex, toIndex)
+  //
+  //   setOrderedSections(nextSections)
+  //   persistOrder(nextSections)
+  // }
 
-    if (fromIndex < 0 || toIndex < 0 || toIndex >= orderedSections.length) {
+  function handleDragEnd(event: DragEndEvent) {
+    const activeId = String(event.active.id)
+    const overId = event.over ? String(event.over.id) : null
+
+    if (overId === null || activeId === overId) {
       return
     }
 
-    const nextSections = moveItem(orderedSections, fromIndex, toIndex)
-
-    setOrderedSections(nextSections)
-    persistOrder(nextSections)
-  }
-
-  function handleDragStart(event: DragEvent<HTMLButtonElement>, sectionId: string) {
-    const ghost = document.createElement("div")
-
-    ghost.textContent = "Mover sección"
-    ghost.style.position = "fixed"
-    ghost.style.top = "-1000px"
-    ghost.style.left = "-1000px"
-    ghost.style.padding = "8px 12px"
-    ghost.style.borderRadius = "6px"
-    ghost.style.background = "black"
-    ghost.style.color = "white"
-    ghost.style.fontSize = "12px"
-    document.body.appendChild(ghost)
-    event.dataTransfer.setDragImage(ghost, 0, 0)
-    window.setTimeout(() => ghost.remove(), 0)
-    setDraggedId(sectionId)
-    setDropPosition(null)
-  }
-
-  function handleDragOver(event: DragEvent<HTMLElement>, sectionId: string) {
-    event.preventDefault()
-
-    if (draggedId === null || draggedId === sectionId) {
-      setDropPosition(null)
-      return
-    }
-
-    setDropPosition({ id: sectionId, edge: getDropEdge(event) })
-  }
-
-  function handleDrop(targetId: string) {
-    if (draggedId === null || draggedId === targetId) {
-      setDropPosition(null)
-      return
-    }
-
-    const fromIndex = orderedSections.findIndex((section) => section.id === draggedId)
-    const toIndex = orderedSections.findIndex((section) => section.id === targetId)
+    const fromIndex = orderedSections.findIndex((section) => section.id === activeId)
+    const toIndex = orderedSections.findIndex((section) => section.id === overId)
 
     if (fromIndex < 0 || toIndex < 0) {
-      setDropPosition(null)
       return
     }
 
-    const nextIndex = getTargetIndex(fromIndex, toIndex, dropPosition?.edge ?? "before")
-    const nextSections = moveItem(orderedSections, fromIndex, nextIndex)
+    const nextSections = arrayMove(orderedSections, fromIndex, toIndex)
 
-    setDraggedId(null)
-    setDropPosition(null)
+    setOpenSectionId(null)
     setOrderedSections(nextSections)
     persistOrder(nextSections)
   }
@@ -727,36 +918,32 @@ export function HomeSectionsManager({
           </AdminActionForm>
 
           {message && <p className={isError ? "text-sm text-destructive" : "text-sm text-green-500"}>{message}</p>}
-          {orderedSections.map((section, index) => (
-            <div
-              key={section.id}
-              className="grid gap-2"
-              onDragOver={(event) => handleDragOver(event, section.id)}
-              onDrop={() => handleDrop(section.id)}
-            >
-              {dropPosition?.id === section.id && dropPosition.edge === "before" && <DropPlaceholder />}
+          <DndContext id="home-sections-sortable" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={orderedSections.map((section) => section.id)} strategy={verticalListSortingStrategy}>
+              {orderedSections.map((section) => (
+                <SortableSectionFrame key={section.id} id={section.id}>
+                  {({ attributes, isDragging, listeners, setActivatorNodeRef }) => (
               <div
-                className={`grid gap-3 rounded-md border bg-card p-3 transition-opacity md:grid-cols-[auto_auto_1fr_minmax(11rem,14rem)_auto] md:items-center ${
+                className={`rounded-md border bg-card transition-opacity ${
                   section.enabled ? "border-border" : "border-dashed border-destructive/50 opacity-65"
                 } ${
-                  draggedId === section.id ? "opacity-40" : ""
+                  isDragging ? "opacity-40" : ""
                 }`}
               >
-                <button
-                  aria-label={`Arrastrar ${getSectionTitle(section)}`}
-                  className="hidden cursor-grab text-muted-foreground transition-colors hover:text-primary active:cursor-grabbing md:block"
-                  draggable
-                  onDragEnd={() => {
-                    setDraggedId(null)
-                    setDropPosition(null)
-                  }}
-                  onDragStart={(event) => handleDragStart(event, section.id)}
-                  type="button"
-                >
-                  <GripVertical className="size-4" aria-hidden="true" />
-                </button>
+                <div className="grid grid-cols-[auto_1fr] gap-3 p-3 md:grid-cols-[auto_auto_1fr_minmax(11rem,14rem)_auto] md:items-center">
+                  <button
+                    aria-label={`Arrastrar ${getSectionTitle(section)}`}
+                    className="cursor-grab touch-none text-muted-foreground transition-colors hover:text-primary active:cursor-grabbing"
+                    {...attributes}
+                    {...listeners}
+                    ref={setActivatorNodeRef}
+                    style={{ touchAction: "none" }}
+                    type="button"
+                  >
+                    <GripVertical className="size-4" aria-hidden="true" />
+                  </button>
 
-                <div className="flex gap-1 md:hidden">
+                  {/* <div className="flex gap-1 md:hidden">
                   <Button
                     type="button"
                     variant="outline"
@@ -777,81 +964,93 @@ export function HomeSectionsManager({
                   >
                     <MoveDown aria-hidden="true" />
                   </Button>
-                </div>
+                </div> */}
 
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
+                  <div className="min-w-0 md:col-auto">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          className="cursor-pointer text-left text-lg tracking-wide transition-colors hover:text-primary"
+                          aria-expanded={openSectionId === section.id}
+                          onClick={() => toggleOpenSection(section.id)}
+                        >
+                          {getSectionTitle(section)}
+                        </button>
+                        <span className={`rounded-sm border px-2 py-0.5 text-xs font-medium ${getSectionContentType(section).className}`}>
+                          {getSectionContentType(section).label}
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2 md:hidden">
+                        <StatusBadge isActive={section.enabled} />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Editar ${getSectionTitle(section)}`}
+                          aria-expanded={openSectionId === section.id}
+                          onClick={() => toggleOpenSection(section.id)}
+                        >
+                          <ChevronDown
+                            className={`transition-transform ${openSectionId === section.id ? "rotate-180" : ""}`}
+                            aria-hidden="true"
+                          />
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{getSectionDescription(section)}</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {getSectionContents(section).map((item) => (
+                        <span key={item} className="rounded-sm border border-border/70 px-2 py-0.5 text-xs text-muted-foreground">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="col-start-2 md:col-auto md:justify-self-stretch">
+                    <SectionPreview
+                      section={
+                        openSectionId === section.id && draftContent
+                          ? ({ ...section, content: { ...section.content, ...draftContent } } as HomeSection)
+                          : section
+                      }
+                      portfolioPreviewItems={portfolioPreviewItems}
+                      flashPreviewItems={flashPreviewItems}
+                    />
+                  </div>
+
+                  <div className="col-start-2 flex flex-wrap items-center gap-2 justify-self-start md:col-auto md:justify-self-end">
+                    <div className="hidden md:block">
+                      <StatusBadge isActive={section.enabled} />
+                    </div>
+
+                    <Button
                       type="button"
-                      className="cursor-pointer text-left text-lg tracking-wide transition-colors hover:text-primary"
+                      variant="ghost"
+                      size="icon"
+                      className="hidden md:inline-flex"
+                      aria-label={`Editar ${getSectionTitle(section)}`}
                       aria-expanded={openSectionId === section.id}
                       onClick={() => toggleOpenSection(section.id)}
                     >
-                      {getSectionTitle(section)}
-                    </button>
-                    <span className={`rounded-sm border px-2 py-0.5 text-xs font-medium ${getSectionContentType(section).className}`}>
-                      {getSectionContentType(section).label}
-                    </span>
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{getSectionDescription(section)}</p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {getSectionContents(section).map((item) => (
-                      <span key={item} className="rounded-sm border border-border/70 px-2 py-0.5 text-xs text-muted-foreground">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="md:justify-self-stretch">
-                  <SectionPreview
-                    section={
-                      openSectionId === section.id && draftContent
-                        ? ({ ...section, content: { ...section.content, ...draftContent } } as HomeSection)
-                        : section
-                    }
-                    portfolioPreviewItems={portfolioPreviewItems}
-                    flashPreviewItems={flashPreviewItems}
-                  />
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 justify-self-start md:justify-self-end">
-                  <StatusBadge isActive={section.enabled} />
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Editar ${getSectionTitle(section)}`}
-                    aria-expanded={openSectionId === section.id}
-                    onClick={() => toggleOpenSection(section.id)}
-                  >
-                    <ChevronDown
-                      className={`transition-transform ${openSectionId === section.id ? "rotate-180" : ""}`}
-                      aria-hidden="true"
-                    />
-                  </Button>
-                </div>
-              </div>
-              {openSectionId === section.id && (
-                <div className="rounded-md border border-border bg-card p-3">
-                  <div className="mb-3 flex items-start justify-between gap-3 border-b border-border pb-3">
-                    <div className="min-w-0">
-                      <p className="text-base tracking-wide">{getSectionTitle(section)}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {section.enabled ? "Visible en la web" : "Oculta en la web"}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant={section.enabled ? "outline" : "default"}
-                      disabled={isPending}
-                      onClick={() => toggleSection(section.id, !section.enabled)}
-                    >
-                      {section.enabled ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
-                      {section.enabled ? "Ocultar sección" : "Mostrar sección"}
+                      <ChevronDown
+                        className={`transition-transform ${openSectionId === section.id ? "rotate-180" : ""}`}
+                        aria-hidden="true"
+                      />
                     </Button>
                   </div>
+                </div>
+
+                {openSectionId === section.id && (
+                  <div className="border-t border-border p-3">
+                  <div className="mb-3 flex justify-end">
+                      <SectionActiveToggle
+                        disabled={isPending}
+                        isActive={section.enabled}
+                        onChange={(isActive) => toggleSection(section.id, isActive)}
+                      />
+                    </div>
                   <AdminActionForm
                     action={updateHomeSectionContent}
                     className="grid gap-3"
@@ -883,10 +1082,13 @@ export function HomeSectionsManager({
                     </div>
                   </AdminActionForm>
                 </div>
-              )}
-              {dropPosition?.id === section.id && dropPosition.edge === "after" && <DropPlaceholder />}
-            </div>
-          ))}
+                )}
+              </div>
+                  )}
+                </SortableSectionFrame>
+              ))}
+            </SortableContext>
+          </DndContext>
         </div>
       </CardContent>
 

@@ -9,6 +9,7 @@ import { CollapsibleAdminCard } from "@/components/admin/collapsible-admin-card"
 import { ImageInput } from "@/components/admin/image-input"
 import { LabeledField } from "@/components/admin/labeled-field"
 import { type AdminStatusFilter, SortableFlashList, SortablePortfolioList } from "@/components/admin/sortable-admin-lists"
+import { TagInputField } from "@/components/admin/tag-input-field"
 import { TattooStyleSelect } from "@/components/admin/tattoo-style-select"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -137,8 +138,8 @@ export function AdminTattoosSection({ portfolioItems, tattooStyles }: AdminTatto
           <LabeledField label="Descripción" alignTop>
             <textarea className={tallFieldClass} name="description" />
           </LabeledField>
-          <LabeledField label="Tags">
-            <input className={fieldClass} name="tags" placeholder="Separados por coma: dragon, abril, boca" />
+          <LabeledField label="Tags" alignTop>
+            <TagInputField className={fieldClass} placeholder="Agregar tag" />
           </LabeledField>
           <div className="grid gap-3 sm:grid-cols-2">
             <ActiveToggle defaultChecked={false} label="Destacado" name="is_featured" />
@@ -208,8 +209,8 @@ export function AdminDesignsSection({ flashItems }: AdminDesignsSectionProps) {
               <ImageInput />
             </LabeledField>
             <FieldError name="image" className={errorIndentClass} />
-            <LabeledField label="Tags">
-              <input className={fieldClass} name="tags" placeholder="Separados por coma: dragon, flash, tradicional" />
+            <LabeledField label="Tags" alignTop>
+              <TagInputField className={fieldClass} placeholder="Agregar tag" />
             </LabeledField>
             <LabeledField label="Tamaño">
               <input className={fieldClass} name="size" />
