@@ -671,25 +671,27 @@ function HomeSectionContentFields({
   const filterFields = definition.fields.filter((field) => field.inFilterBox)
   const filterSummaryBadges = getFilterSummaryBadges(section)
 
-  return (
-    <>
-      <div className="grid gap-3">
-        <div className="border-b border-border pb-2">
-          <p className="text-sm uppercase tracking-wider text-foreground">Textos y apariencia</p>
+  if (filterFields.length > 0) {
+    return (
+      <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr]">
+        <div className="grid content-start gap-3">
+          <div className="border-b border-border pb-2">
+            <p className="text-base uppercase tracking-wider text-foreground">Textos y apariencia</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {mainFields.map((field) => (
+              <FieldWrapper key={field.formName} width={field.width}>
+                <SectionFieldControl field={field} section={section} tattooStyles={tattooStyles} flashStyles={flashStyles} />
+              </FieldWrapper>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-3">
-          {mainFields.map((field) => (
-            <FieldWrapper key={field.formName} width={field.width}>
-              <SectionFieldControl field={field} section={section} tattooStyles={tattooStyles} flashStyles={flashStyles} />
-            </FieldWrapper>
-          ))}
-        </div>
-      </div>
 
-      {filterFields.length > 0 && (
-        <div className="grid gap-3">
+        <div className="hidden w-px bg-border lg:block" aria-hidden="true" />
+
+        <div className="grid content-start gap-3">
           <div className="flex flex-wrap items-center gap-2 border-b border-border pb-2">
-            <p className="text-sm uppercase tracking-wider text-foreground">Contenido mostrado</p>
+            <p className="text-base uppercase tracking-wider text-foreground">Contenido mostrado</p>
             <div className="flex flex-wrap gap-1.5">
               {filterSummaryBadges.length > 0 ? (
                 filterSummaryBadges.map((badge) => (
@@ -712,8 +714,25 @@ function HomeSectionContentFields({
             ))}
           </div>
         </div>
-      )}
-    </>
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid gap-3">
+      <div className="grid gap-3">
+        <div className="border-b border-border pb-2">
+          <p className="text-base uppercase tracking-wider text-foreground">Textos y apariencia</p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {mainFields.map((field) => (
+            <FieldWrapper key={field.formName} width={field.width}>
+              <SectionFieldControl field={field} section={section} tattooStyles={tattooStyles} flashStyles={flashStyles} />
+            </FieldWrapper>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -1060,25 +1079,29 @@ export function HomeSectionsManager({
                     <input name="section_key" type="hidden" value={section.id} />
                     <input name="type" type="hidden" value={section.type} />
                     <HomeSectionContentFields section={section} tattooStyles={tattooStyles} flashStyles={flashStyles} />
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      {getSectionDefinition(section.type)?.deletable && (
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          aria-label={`Borrar ${getSectionTitle(section)}`}
-                          disabled={isPending}
-                          onClick={() => setDeletingSectionId(section.id)}
-                        >
-                          <Trash2 aria-hidden="true" />
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        {getSectionDefinition(section.type)?.deletable && (
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            aria-label={`Borrar ${getSectionTitle(section)}`}
+                            disabled={isPending}
+                            onClick={() => setDeletingSectionId(section.id)}
+                          >
+                            <Trash2 aria-hidden="true" />
+                          </Button>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button type="button" variant="outline" disabled={isPending} onClick={() => toggleOpenSection(section.id)}>
+                          Cancelar
                         </Button>
-                      )}
-                      <Button type="button" variant="outline" disabled={isPending} onClick={() => toggleOpenSection(section.id)}>
-                        Cancelar
-                      </Button>
-                      <Button type="submit" variant="default">
-                        Guardar contenido
-                      </Button>
+                        <Button type="submit" variant="default">
+                          Guardar contenido
+                        </Button>
+                      </div>
                     </div>
                   </AdminActionForm>
                 </div>

@@ -399,33 +399,43 @@ export function SortablePortfolioList({
               </div>
             </div>
             {openItemId === item.id && <div className="grid gap-3 border-t border-border p-3">
-              <AdminActionForm action={updatePortfolioItem} className="grid gap-2" onSuccess={updateItemFromForm} requiredFields={portfolioRequiredFields}>
+              <AdminActionForm action={updatePortfolioItem} className="grid gap-3" onSuccess={updateItemFromForm} requiredFields={portfolioRequiredFields}>
                 <input name="id" type="hidden" value={item.id} />
-                <LabeledField label="Título">
-                  <input className={fieldClass} name="title" defaultValue={item.title} />
-                </LabeledField>
-                <FieldError name="title" className={errorIndentClass} />
-                <LabeledField label="Estilo">
-                  <TattooStyleSelect className={fieldClass} defaultValue={item.style} styles={tattooStyles} />
-                </LabeledField>
-                <LabeledField label="Fecha">
-                  <input className={fieldClass} name="published_date" type="date" defaultValue={item.publishedDate ?? new Date().toISOString().slice(0, 10)} />
-                </LabeledField>
-                <LabeledField label="Imagen">
-                  <ImageInput defaultUrl={item.image} />
-                </LabeledField>
-                <FieldError name="image" className={errorIndentClass} />
-                <LabeledField label="Descripción" alignTop>
-                  <textarea className={tallFieldClass} name="description" defaultValue={item.description ?? ""} />
-                </LabeledField>
-                <LabeledField label="Tags" alignTop>
-                  <TagInputField className={fieldClass} defaultValue={(item.tags ?? []).join(", ")} placeholder="Agregar tag" />
-                </LabeledField>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap gap-3">
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="grid gap-2">
+                    <LabeledField label="Título">
+                      <input className={fieldClass} name="title" defaultValue={item.title} />
+                    </LabeledField>
+                    <FieldError name="title" className={errorIndentClass} />
+                    <LabeledField label="Estilo">
+                      <TattooStyleSelect className={fieldClass} defaultValue={item.style} styles={tattooStyles} />
+                    </LabeledField>
+                    <LabeledField label="Fecha">
+                      <input className={fieldClass} name="published_date" type="date" defaultValue={item.publishedDate ?? new Date().toISOString().slice(0, 10)} />
+                    </LabeledField>
+                    <LabeledField label="Imagen">
+                      <ImageInput defaultUrl={item.image} />
+                    </LabeledField>
+                    <FieldError name="image" className={errorIndentClass} />
+                    <LabeledField label="Descripción" alignTop>
+                      <textarea className={tallFieldClass} name="description" defaultValue={item.description ?? ""} />
+                    </LabeledField>
+                  </div>
+                  <div className="grid content-start gap-2">
+                    <LabeledField label="Tags" alignTop>
+                      <TagInputField className={fieldClass} defaultValue={(item.tags ?? []).join(", ")} placeholder="Agregar tag" />
+                    </LabeledField>
                     <ActiveToggle defaultChecked={item.isFeatured ?? false} label="Destacado" name="is_featured" />
                     <ActiveToggle defaultChecked={item.isActive ?? true} />
                   </div>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <DeleteButton
+                    itemId={item.id}
+                    itemName={item.title}
+                    deleteAction={deletePortfolioItem}
+                    onSuccess={removeItemFromForm}
+                  />
                   <div className="flex items-center gap-2">
                     <Button type="button" variant="outline" onClick={() => setOpenItemId(null)}>
                       Cancelar
@@ -436,14 +446,6 @@ export function SortablePortfolioList({
                   </div>
                 </div>
               </AdminActionForm>
-              <div className="flex justify-end">
-                <DeleteButton
-                  itemId={item.id}
-                  itemName={item.title}
-                  deleteAction={deletePortfolioItem}
-                  onSuccess={removeItemFromForm}
-                />
-              </div>
             </div>}
           </div>
               )}
@@ -653,55 +655,59 @@ export function SortableFlashList({
               </div>
             </div>
             {openItemId === item.id && <div className="grid gap-3 border-t border-border p-3">
-              <AdminActionForm action={updateFlashDesign} className="grid gap-2" onSuccess={updateItemFromForm} requiredFields={flashRequiredFields}>
+              <AdminActionForm action={updateFlashDesign} className="grid gap-3" onSuccess={updateItemFromForm} requiredFields={flashRequiredFields}>
                 <input name="id" type="hidden" value={item.id} />
-                <LabeledField label="Nombre">
-                  <input className={fieldClass} name="name" defaultValue={item.name} />
-                </LabeledField>
-                <FieldError name="name" className={errorIndentClass} />
-                <LabeledField label="Precio">
-                  <input className={fieldClass} name="price" type="number" min="0" step="1" inputMode="numeric" defaultValue={item.price} />
-                </LabeledField>
-                <LabeledField label="Estilo">
-                  <input className={fieldClass} name="style" defaultValue={item.style} />
-                </LabeledField>
-                <LabeledField label="Imagen">
-                  <ImageInput defaultUrl={item.image} />
-                </LabeledField>
-                <FieldError name="image" className={errorIndentClass} />
-                <LabeledField label="Tags" alignTop>
-                  <TagInputField className={fieldClass} defaultValue={(item.tags ?? []).join(", ")} placeholder="Agregar tag" />
-                </LabeledField>
-                <LabeledField label="Tamaño">
-                  <input className={fieldClass} name="size" defaultValue={item.size} />
-                </LabeledField>
-                <LabeledField label="Estado">
-                  <select className={fieldClass} name="status" defaultValue={item.status}>
-                    <option value="Disponible">Disponible</option>
-                    <option value="Reservado">Reservado</option>
-                    <option value="Reclamado">Reclamado</option>
-                  </select>
-                </LabeledField>
-                <div className="justify-self-start">
-                  <ActiveToggle defaultChecked={item.isActive ?? true} />
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="grid gap-2">
+                    <LabeledField label="Nombre">
+                      <input className={fieldClass} name="name" defaultValue={item.name} />
+                    </LabeledField>
+                    <FieldError name="name" className={errorIndentClass} />
+                    <LabeledField label="Precio">
+                      <input className={fieldClass} name="price" type="number" min="0" step="1" inputMode="numeric" defaultValue={item.price} />
+                    </LabeledField>
+                    <LabeledField label="Estilo">
+                      <input className={fieldClass} name="style" defaultValue={item.style} />
+                    </LabeledField>
+                    <LabeledField label="Imagen">
+                      <ImageInput defaultUrl={item.image} />
+                    </LabeledField>
+                    <FieldError name="image" className={errorIndentClass} />
+                  </div>
+                  <div className="grid content-start gap-2">
+                    <LabeledField label="Tags" alignTop>
+                      <TagInputField className={fieldClass} defaultValue={(item.tags ?? []).join(", ")} placeholder="Agregar tag" />
+                    </LabeledField>
+                    <LabeledField label="Tamaño">
+                      <input className={fieldClass} name="size" defaultValue={item.size} />
+                    </LabeledField>
+                    <LabeledField label="Estado">
+                      <select className={fieldClass} name="status" defaultValue={item.status}>
+                        <option value="Disponible">Disponible</option>
+                        <option value="Reservado">Reservado</option>
+                        <option value="Reclamado">Reclamado</option>
+                      </select>
+                    </LabeledField>
+                    <ActiveToggle defaultChecked={item.isActive ?? true} />
+                  </div>
                 </div>
-                <div className="flex items-center justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setOpenItemId(null)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" variant="default">
-                    Guardar
-                  </Button>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <DeleteButton
+                    itemId={item.id}
+                    itemName={item.name}
+                    deleteAction={deleteFlashDesign}
+                    onSuccess={removeItemFromForm}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" onClick={() => setOpenItemId(null)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" variant="default">
+                      Guardar
+                    </Button>
+                  </div>
                 </div>
               </AdminActionForm>
-              <div className="flex justify-end">
-              <DeleteButton
-                itemId={item.id}
-                itemName={item.name} 
-                deleteAction={deleteFlashDesign}
-                onSuccess={removeItemFromForm}
-              />
-            </div>
             </div>}
           </div>
               )}
