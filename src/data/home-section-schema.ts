@@ -1,8 +1,14 @@
 import type { HomeSection, HomeSectionType } from "@/data/home-sections"
+import type { PageSection, PageSectionType } from "@/data/page-sections"
+import { pageSections } from "@/data/page-sections"
+
+export type EditableSiteSection = HomeSection | PageSection
+export type EditableSiteSectionType = HomeSectionType | PageSectionType
 
 export type SectionFieldType =
   | "text"
   | "textarea"
+  | "select"
   | "number"
   | "checkbox"
   | "internalLink"
@@ -14,7 +20,7 @@ export type SectionFieldType =
 export type SectionFieldWidth = "full" | "half" | "third"
 
 /** Variante visual para previsualizar un input de etiqueta como el botón real del sitio. */
-export type ButtonPreviewVariant = "primaryFilled" | "primaryOutline" | "secondaryFilled" | "secondaryOutline"
+export type ButtonPreviewVariant = "primaryFilled" | "primaryOutline" | "secondaryFilled" | "secondaryOutline" | "doubleBorder"
 
 export type SectionFieldDefinition = {
   /** Clave dentro de `content` (o `style` cuando target = "style"). */
@@ -34,7 +40,9 @@ export type SectionFieldDefinition = {
   /** Origen de opciones para los selects de estilo. */
   styleOptions?: "tattoo" | "flash"
   /** Dónde vive el valor: por defecto en `content`. */
-  target?: "content" | "style"
+  target?: "content" | "layout" | "style"
+  /** Opciones fijas para campos select. */
+  options?: Array<{ label: string; value: string }>
   /** Carpeta del storage para campos de imagen. */
   imageFolder?: "flash" | "hero" | "portfolio"
   /** Renderiza el input como una preview del botón real del sitio. */
@@ -48,7 +56,7 @@ export type SectionContentTypeBadge = {
 }
 
 export type SectionDefinition = {
-  type: HomeSectionType
+  type: EditableSiteSectionType
   /** Nombre por defecto cuando no hay título dinámico. */
   label: string
   description: string
@@ -71,8 +79,14 @@ export type SectionDefinition = {
 }
 
 const mutedBadgeClassName = "border-border bg-muted text-muted-foreground"
+const galleryLayoutStyleOptions = [
+  { label: "Carrusel", value: "carousel" },
+  { label: "Grilla", value: "grid" },
+  { label: "Grilla enmarcada", value: "framed-grid" },
+  { label: "Grilla bento", value: "bento-grid" },
+]
 
-export const SECTION_DEFINITIONS: Record<HomeSectionType, SectionDefinition> = {
+export const SECTION_DEFINITIONS: Record<EditableSiteSectionType, SectionDefinition> = {
   hero: {
     type: "hero",
     label: "Portada",
@@ -89,6 +103,7 @@ export const SECTION_DEFINITIONS: Record<HomeSectionType, SectionDefinition> = {
     titleFields: ["brandPrimary", "brandAccent"],
     fields: [
       { key: "backgroundImage", formName: "image_url", label: "Imagen de fondo", type: "image", target: "style", imageFolder: "hero", width: "full" },
+      { key: "layoutStyle", formName: "layout_style", label: "Layout style", type: "select", target: "layout", width: "half", options: [{ label: "Portada centrada", value: "centered-overlay" }] },
       { key: "eyebrow", formName: "eyebrow", label: "Eyebrow", type: "text", required: true, width: "full" },
       { key: "brandPrimary", formName: "brand_primary", label: "Marca principal", type: "text", required: true, width: "half" },
       { key: "brandAccent", formName: "brand_accent", label: "Marca destacada", type: "text", required: true, width: "half" },
@@ -109,7 +124,7 @@ export const SECTION_DEFINITIONS: Record<HomeSectionType, SectionDefinition> = {
         secondaryButtonLabel: "",
         secondaryButtonHref: "",
       },
-      layout: { imagePositionMode: "rotating-mobile" },
+      layout: { imagePositionMode: "rotating-mobile", layoutStyle: "centered-overlay" },
       style: { backgroundImage: "", overlay: "dark" },
     },
   },
@@ -129,9 +144,10 @@ export const SECTION_DEFINITIONS: Record<HomeSectionType, SectionDefinition> = {
     deletable: true,
     titleFields: ["title", "highlightedTitle"],
     fields: [
-      { key: "eyebrow", formName: "eyebrow", label: "Eyebrow", type: "text", required: true, width: "full" },
       { key: "title", formName: "title", label: "Título", type: "text", required: true, width: "half" },
       { key: "highlightedTitle", formName: "highlighted_title", label: "Título destacado", type: "text", required: true, width: "half" },
+      { key: "eyebrow", formName: "eyebrow", label: "Eyebrow", type: "text", required: true, width: "full" },
+      { key: "layoutStyle", formName: "layout_style", label: "Layout style", type: "select", target: "layout", width: "half", options: galleryLayoutStyleOptions },
       { key: "buttonLabel", formName: "button_label", label: "Botón", type: "text", required: true, width: "half", buttonPreview: "primaryOutline" },
       { key: "buttonHref", formName: "button_href", label: "Link del botón", type: "internalLink", required: true, width: "half" },
       { key: "filterTags", formName: "filter_tags", label: "Filtrar por: Tags", type: "text", required: false, width: "half", inFilterBox: true },
@@ -153,9 +169,10 @@ export const SECTION_DEFINITIONS: Record<HomeSectionType, SectionDefinition> = {
         featuredOnly: false,
         filterStyle: "",
         filterTags: "",
+        itemOrder: [],
         limit: 6,
       },
-      layout: { variant: "carousel" },
+      layout: { variant: "carousel", layoutStyle: "carousel" },
       style: { background: "card" },
     },
   },
@@ -175,8 +192,9 @@ export const SECTION_DEFINITIONS: Record<HomeSectionType, SectionDefinition> = {
     deletable: true,
     titleFields: ["highlightedTitle"],
     fields: [
-      { key: "eyebrow", formName: "eyebrow", label: "Eyebrow", type: "text", required: true, width: "full" },
       { key: "highlightedTitle", formName: "highlighted_title", label: "Título destacado", type: "text", required: true, width: "full" },
+      { key: "eyebrow", formName: "eyebrow", label: "Eyebrow", type: "text", required: true, width: "full" },
+      { key: "layoutStyle", formName: "layout_style", label: "Layout style", type: "select", target: "layout", width: "half", options: galleryLayoutStyleOptions },
       { key: "description", formName: "description", label: "Descripción", type: "textarea", required: true, width: "full" },
       { key: "buttonLabel", formName: "button_label", label: "Botón", type: "text", required: true, width: "half", buttonPreview: "secondaryFilled" },
       { key: "buttonHref", formName: "button_href", label: "Link del botón", type: "internalLink", required: true, width: "half" },
@@ -193,44 +211,40 @@ export const SECTION_DEFINITIONS: Record<HomeSectionType, SectionDefinition> = {
         buttonHref: "",
         filterStyle: "",
         filterTags: "",
+        itemOrder: [],
         limit: 6,
       },
-      layout: { columnsDesktop: 3, columnsMobile: 2 },
+      layout: { columnsDesktop: 3, columnsMobile: 2, layoutStyle: "framed-grid" },
       style: { background: "default", frame: "paper" },
     },
   },
   about: {
     type: "about",
     label: "Sobre mí",
-    description: "Muestra foto del artista, presentación, frase destacada y métricas.",
+    description: "Muestra foto del artista, presentación y frase destacada.",
     source: "Contenido de Sobre mí",
     badge: {
       label: "Sobre mí",
       description: "Esta sección muestra la presentación del artista.",
       className: mutedBadgeClassName,
     },
-    contents: ["Imagen", "Presentación", "Frase destacada", "Métricas"],
+    contents: ["Imagen", "Presentación", "Frase destacada"],
     creatable: false,
     deletable: false,
     titleFields: ["title"],
     fields: [
       { key: "title", formName: "title", label: "Título", type: "text", required: false, width: "full" },
+      { key: "layoutStyle", formName: "layout_style", label: "Layout style", type: "select", target: "layout", width: "half", options: [{ label: "Imagen izquierda", value: "image-left" }] },
       { key: "paragraphs", formName: "paragraphs", label: "Párrafos", type: "paragraphs", required: true, width: "full" },
       { key: "quote", formName: "quote", label: "Quote", type: "textarea", required: true, width: "full" },
-      { key: "stats", formName: "stats", label: "Métricas", type: "stats", width: "full" },
     ],
     defaults: {
       content: {
         title: "",
         paragraphs: [],
         quote: "",
-        stats: [
-          { value: "", label: "", tone: "primary" },
-          { value: "", label: "", tone: "secondary" },
-          { value: "", label: "", tone: "accent" },
-        ],
       },
-      layout: { imageSide: "left" },
+      layout: { imageSide: "left", layoutStyle: "image-left" },
       style: { background: "card", image: "" },
     },
   },
@@ -249,9 +263,10 @@ export const SECTION_DEFINITIONS: Record<HomeSectionType, SectionDefinition> = {
     deletable: false,
     titleFields: [],
     fields: [
-      { key: "eyebrow", formName: "eyebrow", label: "Eyebrow", type: "text", required: true, width: "full" },
       { key: "title", formName: "title", label: "Título", type: "text", required: true, width: "half" },
       { key: "highlightedTitle", formName: "highlighted_title", label: "Título destacado", type: "text", required: true, width: "half" },
+      { key: "eyebrow", formName: "eyebrow", label: "Eyebrow", type: "text", required: true, width: "full" },
+      { key: "layoutStyle", formName: "layout_style", label: "Layout style", type: "select", target: "layout", width: "half", options: [{ label: "Centrado", value: "centered" }] },
       { key: "description", formName: "description", label: "Descripción", type: "textarea", required: true, width: "full" },
       { key: "whatsappLabel", formName: "whatsapp_label", label: "Botón 1", type: "text", required: true, width: "third", buttonPreview: "primaryFilled" },
       { key: "instagramLabel", formName: "instagram_label", label: "Botón 2", type: "text", required: true, width: "third", buttonPreview: "secondaryOutline" },
@@ -267,9 +282,110 @@ export const SECTION_DEFINITIONS: Record<HomeSectionType, SectionDefinition> = {
         instagramLabel: "",
         hoursLabel: "",
       },
-      layout: { alignment: "center" },
+      layout: { alignment: "center", layoutStyle: "centered" },
       style: { background: "default", divider: "glow" },
     },
+  },
+  portfolioPage: {
+    type: "portfolioPage",
+    label: "Pantalla de tatuajes",
+    description: "Configura el encabezado y la grilla principal de la pantalla Trabajos.",
+    source: "Pantalla Trabajos",
+    badge: {
+      label: "Tatuajes",
+      description: "Esta seccion configura la pantalla de tatuajes.",
+      className: "border-amber-500/40 bg-amber-500/10 text-amber-300",
+    },
+    contents: ["Encabezado", "Filtros", "Grilla"],
+    creatable: false,
+    deletable: false,
+    titleFields: ["title", "highlightedTitle"],
+    fields: [
+      { key: "title", formName: "title", label: "Titulo", type: "text", required: true, width: "half" },
+      { key: "highlightedTitle", formName: "highlighted_title", label: "Titulo destacado", type: "text", required: true, width: "half" },
+      { key: "layoutStyle", formName: "layout_style", label: "Layout style", type: "select", target: "layout", width: "half", options: [{ label: "Grilla default", value: "default-grid" }] },
+      { key: "eyebrow", formName: "eyebrow", label: "Eyebrow", type: "text", required: true, width: "half" },
+      { key: "description", formName: "description", label: "Descripcion", type: "textarea", required: true, width: "full" },
+    ],
+    defaults: pageSections.portfolio,
+  },
+  flashPage: {
+    type: "flashPage",
+    label: "Pantalla de disenos",
+    description: "Configura el encabezado, mensajes vacios y grilla principal de la pantalla Disenos.",
+    source: "Pantalla Disenos",
+    badge: {
+      label: "Disenos",
+      description: "Esta seccion configura la pantalla de disenos.",
+      className: "border-cyan-500/35 bg-cyan-500/10 text-cyan-300",
+    },
+    contents: ["Encabezado", "Filtros", "Grilla", "Mensajes"],
+    creatable: false,
+    deletable: false,
+    titleFields: ["highlightedTitle"],
+    fields: [
+      { key: "title", formName: "title", label: "Titulo", type: "text", required: false, width: "half" },
+      { key: "highlightedTitle", formName: "highlighted_title", label: "Titulo destacado", type: "text", required: true, width: "half" },
+      { key: "layoutStyle", formName: "layout_style", label: "Layout style", type: "select", target: "layout", width: "half", options: [{ label: "Grilla default", value: "default-grid" }] },
+      { key: "eyebrow", formName: "eyebrow", label: "Eyebrow", type: "text", required: true, width: "half" },
+      { key: "description", formName: "description", label: "Descripcion", type: "textarea", required: true, width: "full" },
+      { key: "emptyState", formName: "empty_state", label: "Mensaje sin resultados", type: "text", required: true, width: "half" },
+      { key: "missingDesignState", formName: "missing_design_state", label: "Mensaje diseno no encontrado", type: "text", required: true, width: "half" },
+    ],
+    defaults: pageSections.flash,
+  },
+  aboutPage: {
+    type: "aboutPage",
+    label: "Pantalla Sobre mi",
+    description: "Configura el contenido principal de la pantalla Sobre mi.",
+    source: "Pantalla Sobre mi",
+    badge: {
+      label: "Sobre mi",
+      description: "Esta seccion configura la pantalla Sobre mi.",
+      className: mutedBadgeClassName,
+    },
+    contents: ["Presentacion", "Frase"],
+    creatable: false,
+    deletable: false,
+    titleFields: ["title"],
+    fields: [
+      { key: "layoutStyle", formName: "layout_style", label: "Layout style", type: "select", target: "layout", width: "half", options: [{ label: "Imagen izquierda", value: "image-left" }] },
+      { key: "title", formName: "title", label: "Titulo", type: "text", required: false, width: "half" },
+      { key: "paragraphs", formName: "paragraphs", label: "Parrafos", type: "paragraphs", required: true, width: "full" },
+      { key: "quote", formName: "quote", label: "Quote", type: "textarea", required: false, width: "full" },
+    ],
+    defaults: pageSections.about,
+  },
+  contactPage: {
+    type: "contactPage",
+    label: "Pantalla Contacto",
+    description: "Configura el encabezado, tarjeta de contacto e imagen de la pantalla Contacto.",
+    source: "Pantalla Contacto",
+    badge: {
+      label: "Contacto",
+      description: "Esta seccion configura la pantalla Contacto.",
+      className: mutedBadgeClassName,
+    },
+    contents: ["Imagen", "Encabezado", "Tarjeta", "Datos"],
+    creatable: false,
+    deletable: false,
+    titleFields: ["title", "highlightedTitle"],
+    fields: [
+      { key: "cardTitle", formName: "card_title", label: "Titulo pantalla", type: "text", required: true, width: "half" },
+      { key: "cardHighlightedTitle", formName: "card_highlighted_title", label: "Titulo pantalla destacado", type: "text", required: true, width: "half" },
+      { key: "image", formName: "image_url", label: "Imagen", type: "image", target: "style", imageFolder: "portfolio", required: false, width: "full" },
+      { key: "title", formName: "title", label: "Titulo tarjeta", type: "text", required: true, width: "half" },
+      { key: "highlightedTitle", formName: "highlighted_title", label: "Titulo tarjeta destacado", type: "text", required: true, width: "half" },
+      { key: "layoutStyle", formName: "layout_style", label: "Layout style", type: "select", target: "layout", width: "half", options: [{ label: "Imagen izquierda + tarjeta", value: "image-left-card" }] },
+      { key: "eyebrow", formName: "eyebrow", label: "Eyebrow", type: "text", required: true, width: "half" },
+      { key: "description", formName: "description", label: "Descripcion", type: "textarea", required: true, width: "full" },
+      { key: "cardEyebrow", formName: "card_eyebrow", label: "Eyebrow tarjeta", type: "text", required: true, width: "half" },
+      { key: "cardDescription", formName: "card_description", label: "Descripcion tarjeta", type: "textarea", required: true, width: "full" },
+      { key: "whatsappLabel", formName: "whatsapp_label", label: "Boton WhatsApp", type: "text", required: true, width: "half", buttonPreview: "primaryFilled" },
+      { key: "instagramLabel", formName: "instagram_label", label: "Boton Instagram", type: "text", required: true, width: "half", buttonPreview: "secondaryOutline" },
+      { key: "yearsLabel", formName: "years_label", label: "Label de foto", type: "text", required: true, width: "half" },
+    ],
+    defaults: pageSections.contact,
   },
 }
 
@@ -299,7 +415,7 @@ export function parseSectionContentFromForm(formData: FormData, definition: Sect
   const content: Record<string, unknown> = {}
 
   for (const field of definition.fields) {
-    if (field.type === "image" || field.target === "style") {
+    if (field.type === "image" || field.target === "layout" || field.target === "style") {
       continue
     }
 
@@ -321,15 +437,36 @@ export function parseSectionContentFromForm(formData: FormData, definition: Sect
         }))
         break
       default:
-        content[field.key] = getTrimmedString(formData, field.formName)
+      content[field.key] = getTrimmedString(formData, field.formName)
     }
+  }
+
+  if (definition.type === "featuredPortfolio" || definition.type === "flashPreview") {
+    content.itemOrder = String(formData.get("item_order") ?? "")
+      .split(",")
+      .map((id) => Number(id.trim()))
+      .filter((id) => Number.isInteger(id) && id > 0)
   }
 
   return content
 }
 
+export function parseSectionLayoutFromForm(formData: FormData, definition: SectionDefinition): Record<string, unknown> {
+  const layout = { ...definition.defaults.layout }
+  const layoutFields = definition.fields.filter((field) => field.target === "layout")
+
+  for (const field of layoutFields) {
+    const value = getTrimmedString(formData, field.formName)
+    const hasKnownOption = field.options?.some((option) => option.value === value) ?? true
+
+    layout[field.key] = hasKnownOption ? value : definition.defaults.layout[field.key]
+  }
+
+  return layout
+}
+
 export function getSectionDefinition(type: string): SectionDefinition | undefined {
-  return SECTION_DEFINITIONS[type as HomeSectionType]
+  return SECTION_DEFINITIONS[type as EditableSiteSectionType]
 }
 
 export function getCreatableSectionDefinitions(): SectionDefinition[] {
@@ -340,7 +477,7 @@ export function getSectionImageField(definition: SectionDefinition): SectionFiel
   return definition.fields.find((field) => field.type === "image")
 }
 
-export function getSectionDisplayTitle(section: Pick<HomeSection, "type" | "content">): string {
+export function getSectionDisplayTitle(section: Pick<EditableSiteSection, "type" | "content">): string {
   const definition = getSectionDefinition(section.type)
 
   if (!definition) {

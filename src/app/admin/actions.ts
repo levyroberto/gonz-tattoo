@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
-import { getSectionDefinition, getSectionImageField, parseSectionContentFromForm } from "@/data/home-section-schema"
+import { getSectionDefinition, getSectionImageField, parseSectionContentFromForm, parseSectionLayoutFromForm } from "@/data/home-section-schema"
 import { createSupabaseAuthServerClient } from "@/lib/supabase/server"
 
 const IMAGE_BUCKET = "site-images"
@@ -227,7 +227,6 @@ export async function updateSiteSettings(formData: FormData) {
 
   revalidatePublicContent()
   revalidatePath("/contact")
-  revalidatePath("/sobre-mi")
   revalidatePath("/admin")
 
   return { ok: true }
@@ -620,7 +619,7 @@ export async function updateHomeSectionEnabled(formData: FormData) {
     return { ok: false, error: `home-section-toggle: ${error.message}` }
   }
 
-  revalidatePath("/")
+  revalidatePublicContent()
   revalidatePath("/admin")
 
   return { ok: true }
@@ -752,14 +751,27 @@ function getHomeSectionContentFromForm(formData: FormData) {
   return parseSectionContentFromForm(formData, definition)
 }
 
+function getHomeSectionLayoutFromForm(formData: FormData) {
+  const sectionType = String(formData.get("type") ?? "")
+  const definition = getSectionDefinition(sectionType)
+
+  if (!definition) {
+    return null
+  }
+
+  return parseSectionLayoutFromForm(formData, definition)
+}
+
 export async function updateHomeSectionContent(formData: FormData) {
   const supabase = await createSupabaseAuthServerClient()
+  const pageKey = String(formData.get("page_key") ?? "home").trim() || "home"
   const sectionKey = String(formData.get("section_key") ?? "")
   const sectionType = String(formData.get("type") ?? "")
   const definition = getSectionDefinition(sectionType)
   const content = getHomeSectionContentFromForm(formData)
+  const layout = getHomeSectionLayoutFromForm(formData)
 
-  if (!supabase || !sectionKey || !definition || !content) {
+  if (!supabase || !sectionKey || !definition || !content || !layout) {
     return { ok: false, error: "home-section-content" }
   }
 
@@ -773,7 +785,7 @@ export async function updateHomeSectionContent(formData: FormData) {
       return { ok: false, error: image.error }
     }
 
-    if (!image.imageUrl) {
+    if (!image.imageUrl && imageField.required !== false) {
       return { ok: false, error: "home-section-content: falta imagen de fondo" }
     }
 
@@ -784,10 +796,11 @@ export async function updateHomeSectionContent(formData: FormData) {
     .from("site_sections")
     .update({
       content,
+      layout,
       ...(stylePayload ? { style: stylePayload } : {}),
       updated_at: new Date().toISOString(),
     })
-    .eq("page_key", "home")
+    .eq("page_key", pageKey)
     .eq("section_key", sectionKey)
 
   if (error) {
@@ -803,6 +816,7 @@ export async function updateHomeSectionContent(formData: FormData) {
     item: {
       sectionKey,
       content,
+      layout,
       ...(stylePayload ? { style: stylePayload } : {}),
     },
   }
@@ -838,7 +852,6 @@ export async function updateFooterSectionContent(formData: FormData) {
   revalidatePath("/trabajos")
   revalidatePath("/disenos")
   revalidatePath("/contact")
-  revalidatePath("/sobre-mi")
   revalidatePath("/admin")
 
   return {

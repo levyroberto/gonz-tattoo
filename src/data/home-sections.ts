@@ -21,6 +21,7 @@ export type HeroSectionContent = {
 
 export type HeroSectionLayout = {
   imagePositionMode: "rotating-mobile"
+  layoutStyle: "centered-overlay"
 }
 
 export type HeroSectionStyle = {
@@ -39,11 +40,13 @@ export type FeaturedPortfolioSectionContent = {
   featuredOnly: boolean
   filterStyle: string
   filterTags: string
+  itemOrder: number[]
   limit: number
 }
 
 export type FeaturedPortfolioSectionLayout = {
   variant: "carousel"
+  layoutStyle: "carousel" | "grid" | "framed-grid" | "bento-grid"
 }
 
 export type FeaturedPortfolioSectionStyle = {
@@ -58,12 +61,14 @@ export type FlashPreviewSectionContent = {
   buttonHref: string
   filterStyle: string
   filterTags: string
+  itemOrder: number[]
   limit: number
 }
 
 export type FlashPreviewSectionLayout = {
   columnsDesktop: 3
   columnsMobile: 2
+  layoutStyle: "carousel" | "grid" | "framed-grid" | "bento-grid"
 }
 
 export type FlashPreviewSectionStyle = {
@@ -75,15 +80,11 @@ export type AboutSectionContent = {
   title: string
   paragraphs: string[]
   quote: string
-  stats: Array<{
-    value: string
-    label: string
-    tone: "primary" | "secondary" | "accent"
-  }>
 }
 
 export type AboutSectionLayout = {
   imageSide: "left"
+  layoutStyle: "image-left"
 }
 
 export type AboutSectionStyle = {
@@ -103,6 +104,7 @@ export type ContactCtaSectionContent = {
 
 export type ContactCtaSectionLayout = {
   alignment: "center"
+  layoutStyle: "centered"
 }
 
 export type ContactCtaSectionStyle = {
@@ -135,14 +137,10 @@ export const aboutSectionDefaults: Pick<AboutHomeSection, "content" | "layout" |
     title: "",
     paragraphs: [],
     quote: "",
-    stats: [
-      { value: "", label: "", tone: "primary" },
-      { value: "", label: "", tone: "secondary" },
-      { value: "", label: "", tone: "accent" },
-    ],
   },
   layout: {
     imageSide: "left",
+    layoutStyle: "image-left",
   },
   style: {
     background: "card",
@@ -168,6 +166,7 @@ export const homeSections: HomeSection[] = [
     },
     layout: {
       imagePositionMode: "rotating-mobile",
+      layoutStyle: "centered-overlay",
     },
     style: {
       backgroundImage: "",
@@ -190,10 +189,12 @@ export const homeSections: HomeSection[] = [
       featuredOnly: true,
       filterStyle: "",
       filterTags: "",
+      itemOrder: [],
       limit: 4,
     },
     layout: {
       variant: "carousel",
+      layoutStyle: "carousel",
     },
     style: {
       background: "card",
@@ -212,11 +213,13 @@ export const homeSections: HomeSection[] = [
       buttonHref: "",
       filterStyle: "",
       filterTags: "",
+      itemOrder: [],
       limit: 6,
     },
     layout: {
       columnsDesktop: 3,
       columnsMobile: 2,
+      layoutStyle: "framed-grid",
     },
     style: {
       background: "default",
@@ -246,6 +249,7 @@ export const homeSections: HomeSection[] = [
     },
     layout: {
       alignment: "center",
+      layoutStyle: "centered",
     },
     style: {
       background: "default",

@@ -3,6 +3,7 @@ import { footerSectionFallback } from "@/data/global-sections"
 import type { FooterSection } from "@/data/global-sections"
 import { getEnabledHomeSections, getHomeSectionFallback, getHomeSectionsFallback, getHomeSectionTemplate } from "@/data/home-sections"
 import type { HomeSection } from "@/data/home-sections"
+import { getPageSectionFallback, getPageSectionsFallback, type EditablePageKey, type PageSection } from "@/data/page-sections"
 import type { Tattoo } from "@/data/tattoos"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import type { Database, Json } from "@/lib/supabase/database.types"
@@ -346,13 +347,14 @@ export async function getFeaturedFlashDesigns(): Promise<FlashDesign[]> {
 }
 
 export async function getAdminDashboardContent() {
-  const [stats, portfolioItems, flashItems, tattooStyles, settings, homeSections, footer] = await Promise.all([
+  const [stats, portfolioItems, flashItems, tattooStyles, settings, homeSections, pageSections, footer] = await Promise.all([
     getAdminContentStats(),
     getAdminPortfolioItems(),
     getAdminFlashDesigns(),
     getTattooStyles(),
     getSiteSettings(),
     getAdminHomeSections(),
+    getAdminPageSections(),
     getGlobalFooterSection(),
   ])
 
@@ -363,6 +365,7 @@ export async function getAdminDashboardContent() {
     tattooStyles,
     settings,
     homeSections,
+    pageSections,
     footer,
   }
 }
@@ -402,6 +405,90 @@ function normalizeFooterSection(row: SiteSectionRow): FooterSection | null {
     layout: isJsonRecord(row.layout) ? { ...footerSectionFallback.layout, ...row.layout } : footerSectionFallback.layout,
     style: isJsonRecord(row.style) ? { ...footerSectionFallback.style, ...row.style } : footerSectionFallback.style,
   } as FooterSection
+}
+
+function isBlankAboutPageContent(content: PageSection["content"]) {
+  if (!("paragraphs" in content)) {
+    return false
+  }
+
+  return !content.title.trim() && content.paragraphs.length === 0 && !content.quote.trim()
+}
+
+function normalizePageSection(pageKey: EditablePageKey, row: SiteSectionRow): PageSection | null {
+  const fallback = getPageSectionFallback(pageKey)
+
+  if (row.section_key !== fallback.id || row.type !== fallback.type) {
+    return null
+  }
+
+  const content = isJsonRecord(row.content) ? { ...fallback.content, ...row.content } : fallback.content
+  const style = isJsonRecord(row.style) ? { ...fallback.style, ...row.style } : fallback.style
+  const shouldUseAboutFallback = pageKey === "about" && isBlankAboutPageContent(content as PageSection["content"])
+
+  return {
+    ...fallback,
+    enabled: row.enabled,
+    order: row.display_order,
+    content: shouldUseAboutFallback ? fallback.content : content,
+    layout: isJsonRecord(row.layout) ? { ...fallback.layout, ...row.layout } : fallback.layout,
+    style: shouldUseAboutFallback ? fallback.style : style,
+  } as PageSection
+}
+
+export async function getPageSection(pageKey: EditablePageKey): Promise<PageSection> {
+  const fallback = getPageSectionFallback(pageKey)
+  const supabase = createSupabaseServerClient()
+
+  if (!supabase) {
+    return fallback
+  }
+
+  const { data, error } = await supabase
+    .from("site_sections")
+    .select("id, page_key, section_key, type, enabled, display_order, content, layout, style, created_at, updated_at")
+    .eq("page_key", pageKey)
+    .eq("section_key", fallback.id)
+    .maybeSingle()
+
+  if (error) {
+    console.error(`Supabase ${pageKey} section fetch failed:`, error.message)
+    return fallback
+  }
+
+  if (!data) {
+    return fallback
+  }
+
+  return normalizePageSection(pageKey, data) ?? fallback
+}
+
+export async function getAdminPageSections(): Promise<Array<{ pageKey: EditablePageKey; section: PageSection }>> {
+  const supabase = createSupabaseServerClient()
+
+  if (!supabase) {
+    return getPageSectionsFallback()
+  }
+
+  const { data, error } = await supabase
+    .from("site_sections")
+    .select("id, page_key, section_key, type, enabled, display_order, content, layout, style, created_at, updated_at")
+    .in("page_key", ["portfolio", "flash", "about", "contact"])
+    .order("display_order", { ascending: true })
+
+  if (error) {
+    console.error("Supabase admin page sections fetch failed:", error.message)
+    return getPageSectionsFallback()
+  }
+
+  return getPageSectionsFallback().map(({ pageKey, section }) => {
+    const row = data?.find((item) => item.page_key === pageKey && item.section_key === section.id)
+
+    return {
+      pageKey,
+      section: row ? normalizePageSection(pageKey, row) ?? section : section,
+    }
+  })
 }
 
 export async function getHomeSections(): Promise<HomeSection[]> {

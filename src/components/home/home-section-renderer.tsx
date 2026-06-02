@@ -15,6 +15,7 @@ type HomeSectionRendererProps = {
   flashDesigns: FlashDesign[]
   portfolioItems: Tattoo[]
   settings: SiteSettings
+  aboutImage?: string
 }
 
 export function HomeSectionRenderer({
@@ -22,6 +23,7 @@ export function HomeSectionRenderer({
   flashDesigns,
   portfolioItems,
   settings,
+  aboutImage,
 }: HomeSectionRendererProps) {
   switch (section.type) {
     case "hero":
@@ -31,7 +33,7 @@ export function HomeSectionRenderer({
     case "flashPreview":
       return <FlashDesignsPreview designs={filterFlashDesigns(flashDesigns, section)} content={section.content} layout={section.layout} style={section.style} />
     case "about":
-      return <AboutSection settings={settings} content={section.content} layout={section.layout} style={section.style} />
+      return <AboutSection settings={settings} content={section.content} layout={section.layout} style={section.style} image={aboutImage} />
     case "contactCta":
       return <ContactCTA settings={settings} content={section.content} layout={section.layout} style={section.style} />
     default:
