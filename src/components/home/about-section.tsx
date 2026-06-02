@@ -27,7 +27,7 @@ export function AboutSection({ settings, content, layout, style }: AboutSectionP
   const visibleStats = content.stats.filter((stat) => stat.value || stat.label)
 
   return (
-    <section id="about" className={`relative py-24 ${sectionBackgroundClassNames[style.background]} grunge-texture`} data-image-side={layout.imageSide}>
+    <section id="about" className={`relative scroll-mt-20 py-24 ${sectionBackgroundClassNames[style.background]} grunge-texture`} data-image-side={layout.imageSide}>
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {style.image && (

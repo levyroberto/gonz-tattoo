@@ -15,6 +15,7 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
+  horizontalListSortingStrategy,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
@@ -35,6 +36,7 @@ import {
   getSectionDefinition,
   getSectionDisplayTitle,
   parseSectionContentFromForm,
+  parseSectionLayoutFromForm,
   type ButtonPreviewVariant,
   type SectionFieldDefinition,
   type SectionFieldWidth,
@@ -48,7 +50,7 @@ const tallFieldClass = "min-h-24 rounded-md border border-border bg-input px-3 p
 const internalLinkOptions = [
   { label: "Trabajos", value: "/trabajos" },
   { label: "Diseños flash", value: "/disenos" },
-  { label: "Sobre mí", value: "/sobre-mi" },
+  { label: "Sobre mí", value: "/#about" },
   { label: "Contacto", value: "/contact" },
   { label: "Inicio", value: "/" },
 ]
@@ -149,19 +151,65 @@ function getSectionTitle(section: HomeSection) {
 }
 
 function getSectionDescription(section: HomeSection) {
-  return getSectionDefinition(section.type)?.description ?? ""
-}
+  const description = (section.content as Record<string, unknown>).description
 
-function getSectionContents(section: HomeSection) {
-  return getSectionDefinition(section.type)?.contents ?? []
+  return typeof description === "string" ? description.trim() : ""
 }
 
 function getSectionContentType(section: HomeSection) {
   return getSectionDefinition(section.type)?.badge ?? SECTION_DEFINITIONS.hero.badge
 }
 
-function PreviewImageStrip({ images }: { images: Array<{ alt: string; src?: string }> }) {
-  const visibleImages = images.filter((image) => image.src).slice(0, 5)
+type PreviewImageItem = {
+  alt: string
+  id: number
+  src?: string
+}
+
+function SortablePreviewImage({ image }: { image: PreviewImageItem }) {
+  const { attributes, isDragging, listeners, setNodeRef, transform, transition } = useSortable({ id: `preview-${image.id}` })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <button
+      ref={setNodeRef}
+      style={style}
+      className={`size-16 shrink-0 touch-pan-x cursor-grab overflow-hidden rounded-md border border-border bg-muted transition-opacity active:cursor-grabbing ${
+        isDragging ? "cursor-grabbing opacity-50" : ""
+      }`}
+      type="button"
+      aria-label={`Reordenar ${image.alt}`}
+      {...attributes}
+      {...listeners}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={image.src} alt={image.alt} className="size-full object-cover" loading="lazy" />
+    </button>
+  )
+}
+
+function getPreviewSortableId(sortableId: string | number) {
+  return Number(String(sortableId).replace(/^preview-/, ""))
+}
+
+function PreviewImageStrip({
+  images,
+  itemOrder,
+  onReorder,
+}: {
+  images: PreviewImageItem[]
+  itemOrder?: number[]
+  onReorder?: (itemIds: number[]) => void
+}) {
+  const visibleImages = images.filter((image) => image.src)
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
 
   if (visibleImages.length === 0) {
     return (
@@ -171,18 +219,39 @@ function PreviewImageStrip({ images }: { images: Array<{ alt: string; src?: stri
     )
   }
 
+  function handleDragEnd(event: DragEndEvent) {
+    const activeId = getPreviewSortableId(event.active.id)
+    const overId = event.over ? getPreviewSortableId(event.over.id) : null
+
+    if (overId === null || activeId === overId) {
+      return
+    }
+
+    const fromIndex = visibleImages.findIndex((image) => image.id === activeId)
+    const toIndex = visibleImages.findIndex((image) => image.id === overId)
+
+    if (fromIndex < 0 || toIndex < 0) {
+      return
+    }
+
+    const nextVisibleImages = arrayMove(visibleImages, fromIndex, toIndex)
+    const visibleIds = new Set(visibleImages.map((image) => image.id))
+    const hiddenOrderedIds = (itemOrder ?? []).filter((id) => !visibleIds.has(id))
+
+    onReorder?.([...nextVisibleImages.map((image) => image.id), ...hiddenOrderedIds])
+  }
+
   return (
-    <div className="grid grid-cols-5 gap-1.5">
-      {visibleImages.map((image) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={`${image.alt}-${image.src}`}
-          src={image.src}
-          alt={image.alt}
-          className="h-16 w-full rounded-md border border-border bg-muted object-cover"
-          loading="lazy"
-        />
-      ))}
+    <div className="min-w-0 max-w-full overflow-hidden">
+      <DndContext id="section-preview-images-sortable" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={visibleImages.map((image) => `preview-${image.id}`)} strategy={horizontalListSortingStrategy}>
+          <div className="flex w-full min-w-0 max-w-full touch-pan-x gap-1.5 overflow-x-auto pb-1">
+            {visibleImages.map((image) => (
+              <SortablePreviewImage key={image.id} image={image} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   )
 }
@@ -202,53 +271,53 @@ function SinglePreviewImage({ alt, src }: { alt: string; src?: string }) {
   )
 }
 
-function ContactPreviewBadges() {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {["WhatsApp", "Instagram", "Dirección", "Horario"].map((item) => (
-        <span key={item} className="rounded-md border border-border bg-muted px-2 py-1 text-xs text-muted-foreground">
-          {item}
-        </span>
-      ))}
-    </div>
-  )
-}
-
 function SectionPreview({
   flashPreviewItems,
+  onItemOrderChange,
   portfolioPreviewItems,
   section,
 }: {
   flashPreviewItems: FlashDesign[]
+  onItemOrderChange?: (sectionId: string, itemIds: number[]) => void
   portfolioPreviewItems: Tattoo[]
   section: HomeSection
 }) {
   switch (section.type) {
     case "hero":
-      return <SinglePreviewImage alt="Vista previa de portada" src={section.style.backgroundImage} />
+      return null
     case "featuredPortfolio":
       return (
         <PreviewImageStrip
-          images={filterPortfolioItems(portfolioPreviewItems, section).map((item) => ({ alt: item.title, src: item.image }))}
+          images={filterPortfolioItems(portfolioPreviewItems, section).map((item) => ({ alt: item.title, id: item.id, src: item.image }))}
+          itemOrder={section.content.itemOrder}
+          onReorder={(itemIds) => onItemOrderChange?.(section.id, itemIds)}
         />
       )
     case "flashPreview":
       return (
         <PreviewImageStrip
-          images={filterFlashDesigns(flashPreviewItems, section).map((item) => ({ alt: item.name, src: item.image }))}
+          images={filterFlashDesigns(flashPreviewItems, section).map((item) => ({ alt: item.name, id: item.id, src: item.image }))}
+          itemOrder={section.content.itemOrder}
+          onReorder={(itemIds) => onItemOrderChange?.(section.id, itemIds)}
         />
       )
     case "about":
-      return <SinglePreviewImage alt="Vista previa de Sobre mí" src={section.style.image} />
+      return null
     case "contactCta":
-      return <ContactPreviewBadges />
+      return null
   }
 }
 
 type HomeSectionContentUpdate = {
   sectionKey: string
   content: HomeSection["content"]
+  layout?: HomeSection["layout"]
   style?: HomeSection["style"]
+}
+
+type HomeSectionDraft = {
+  content: Record<string, unknown>
+  layout: Record<string, unknown>
 }
 
 function isHomeSectionContentUpdate(item: unknown): item is HomeSectionContentUpdate {
@@ -257,6 +326,14 @@ function isHomeSectionContentUpdate(item: unknown): item is HomeSectionContentUp
 
 function isHomeSection(item: unknown): item is HomeSection {
   return Boolean(item && typeof item === "object" && "id" in item && "type" in item && "content" in item)
+}
+
+function isGallerySection(section: HomeSection): section is Extract<HomeSection, { type: "featuredPortfolio" | "flashPreview" }> {
+  return section.type === "featuredPortfolio" || section.type === "flashPreview"
+}
+
+function getGallerySectionItemOrderValue(section: HomeSection) {
+  return isGallerySection(section) ? section.content.itemOrder.join(",") : ""
 }
 
 function FormField({
@@ -274,6 +351,36 @@ function FormField({
     <label className="grid gap-1 text-sm text-muted-foreground">
       {label}
       <input className={fieldClass} name={name} defaultValue={defaultValue} required={required} />
+    </label>
+  )
+}
+
+function SelectField({
+  defaultValue,
+  label,
+  name,
+  options,
+  required = true,
+}: {
+  defaultValue: string
+  label: string
+  name: string
+  options: Array<{ label: string; value: string }>
+  required?: boolean
+}) {
+  const hasKnownValue = options.some((option) => option.value === defaultValue)
+
+  return (
+    <label className="grid gap-1 text-sm text-muted-foreground">
+      {label}
+      <select className={fieldClass} name={name} defaultValue={defaultValue} required={required}>
+        {!hasKnownValue && defaultValue && <option value={defaultValue}>{defaultValue}</option>}
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </label>
   )
 }
@@ -384,6 +491,22 @@ const buttonPreviewClass: Record<ButtonPreviewVariant, string> = {
   primaryOutline: "border-2 border-primary bg-transparent text-primary placeholder:text-primary/50",
   secondaryFilled: "border-2 border-secondary bg-secondary text-secondary-foreground placeholder:text-secondary-foreground/50",
   secondaryOutline: "border-2 border-secondary bg-transparent text-secondary placeholder:text-secondary/50",
+  doubleBorder: "border border-border bg-transparent text-foreground placeholder:text-foreground/50 hover:border-primary hover:text-primary",
+}
+
+const galleryLayoutButtonPreviewVariants: Record<string, ButtonPreviewVariant> = {
+  carousel: "primaryOutline",
+  grid: "doubleBorder",
+  "framed-grid": "secondaryFilled",
+  "bento-grid": "doubleBorder",
+}
+
+function getButtonPreviewVariant(section: HomeSection, fallbackVariant: ButtonPreviewVariant) {
+  if (section.type !== "featuredPortfolio" && section.type !== "flashPreview") {
+    return fallbackVariant
+  }
+
+  return galleryLayoutButtonPreviewVariants[section.layout.layoutStyle] ?? fallbackVariant
 }
 
 function ButtonPreviewField({
@@ -399,6 +522,28 @@ function ButtonPreviewField({
   required?: boolean
   variant: ButtonPreviewVariant
 }) {
+  if (variant === "doubleBorder") {
+    return (
+      <label className="grid gap-1 text-sm text-muted-foreground">
+        <span className="flex flex-wrap items-center gap-2">
+          {label} - vista previa
+          <span className="rounded-sm border border-border bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+            Preview
+          </span>
+        </span>
+        <span className="relative block before:absolute before:-bottom-1 before:-right-1 before:left-1 before:top-1 before:border before:border-primary before:opacity-0 before:transition-opacity hover:before:opacity-100">
+          <input
+            className={`h-10 w-full rounded-md px-4 text-center font-sans text-sm uppercase tracking-widest outline-none transition-colors placeholder:normal-case placeholder:tracking-normal focus:ring-2 focus:ring-primary/40 ${buttonPreviewClass[variant]}`}
+            name={name}
+            defaultValue={defaultValue}
+            required={required}
+            placeholder="Texto del botón"
+          />
+        </span>
+      </label>
+    )
+  }
+
   return (
     <label className="grid gap-1 text-sm text-muted-foreground">
       <span className="flex flex-wrap items-center gap-2">
@@ -557,9 +702,10 @@ function SectionFieldControl({
   tattooStyles: string[]
 }) {
   const content = section.content as Record<string, unknown>
+  const layout = section.layout as Record<string, unknown>
   const style = section.style as Record<string, unknown>
   const required = field.required ?? true
-  const rawValue = field.target === "style" ? style[field.key] : content[field.key]
+  const rawValue = field.target === "style" ? style[field.key] : field.target === "layout" ? layout[field.key] : content[field.key]
 
   if (field.buttonPreview) {
     return (
@@ -568,7 +714,7 @@ function SectionFieldControl({
         name={field.formName}
         defaultValue={String(rawValue ?? "")}
         required={required}
-        variant={field.buttonPreview}
+        variant={getButtonPreviewVariant(section, field.buttonPreview)}
       />
     )
   }
@@ -580,13 +726,24 @@ function SectionFieldControl({
   switch (field.type) {
     case "image":
       return (
-        <label className="grid gap-1 text-sm text-muted-foreground">
-          {field.label}
+        <div className="grid gap-1 text-sm text-muted-foreground">
+          <span>{field.label}</span>
+          <SinglePreviewImage alt={`Vista previa de ${field.label}`} src={typeof rawValue === "string" ? rawValue : ""} />
           <ImageInput defaultUrl={typeof rawValue === "string" ? rawValue : ""} />
-        </label>
+        </div>
       )
     case "textarea":
       return <TextareaField label={field.label} name={field.formName} defaultValue={String(rawValue ?? "")} required={required} />
+    case "select":
+      return (
+        <SelectField
+          label={field.label}
+          name={field.formName}
+          defaultValue={String(rawValue ?? "")}
+          options={field.options ?? []}
+          required={required}
+        />
+      )
     case "paragraphs":
       return (
         <TextareaField
@@ -745,7 +902,7 @@ export function HomeSectionsManager({
 }: HomeSectionsManagerProps) {
   const [orderedSections, setOrderedSections] = useState(sections)
   const [openSectionId, setOpenSectionId] = useState<string | null>(null)
-  const [draftContent, setDraftContent] = useState<Record<string, unknown> | null>(null)
+  const [draftContent, setDraftContent] = useState<HomeSectionDraft | null>(null)
   const [deletingSectionId, setDeletingSectionId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isError, setIsError] = useState(false)
@@ -821,7 +978,24 @@ export function HomeSectionsManager({
       return
     }
 
-    setDraftContent(parseSectionContentFromForm(new FormData(event.currentTarget), definition))
+    setDraftContent({
+      content: parseSectionContentFromForm(new FormData(event.currentTarget), definition),
+      layout: parseSectionLayoutFromForm(new FormData(event.currentTarget), definition),
+    })
+  }
+
+  function updateSectionItemOrder(sectionId: string, itemIds: number[]) {
+    if (openSectionId !== sectionId) {
+      setOpenSectionId(sectionId)
+    }
+
+    setDraftContent((currentDraft) => ({
+      content: {
+        ...(currentDraft?.content ?? {}),
+        itemOrder: itemIds,
+      },
+      layout: currentDraft?.layout ?? {},
+    }))
   }
 
   function removeSection(sectionId: string) {
@@ -898,7 +1072,7 @@ export function HomeSectionsManager({
     setOrderedSections((currentSections) =>
       currentSections.map((section) =>
         section.id === item.sectionKey
-          ? { ...section, content: item.content, ...(item.style ? { style: item.style } : {}) } as HomeSection
+          ? { ...section, content: item.content, ...(item.layout ? { layout: item.layout } : {}), ...(item.style ? { style: item.style } : {}) } as HomeSection
           : section
       )
     )
@@ -913,6 +1087,18 @@ export function HomeSectionsManager({
   }
 
   const deletingSection = orderedSections.find((section) => section.id === deletingSectionId) ?? null
+
+  function getSectionWithDraft(section: HomeSection) {
+    if (openSectionId !== section.id || !draftContent) {
+      return section
+    }
+
+    return {
+      ...section,
+      content: { ...section.content, ...draftContent.content },
+      layout: { ...section.layout, ...draftContent.layout },
+    } as HomeSection
+  }
 
   return (
     <Card className="rounded-lg border border-border/70">
@@ -949,7 +1135,7 @@ export function HomeSectionsManager({
                   isDragging ? "opacity-40" : ""
                 }`}
               >
-                <div className="grid grid-cols-[auto_1fr] gap-3 p-3 md:grid-cols-[auto_auto_1fr_minmax(11rem,14rem)_auto] md:items-center">
+                <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-3 p-3 md:grid-cols-[auto_auto_minmax(0,1fr)_minmax(0,14rem)_auto] md:items-center">
                   <button
                     aria-label={`Arrastrar ${getSectionTitle(section)}`}
                     className="cursor-grab touch-none text-muted-foreground transition-colors hover:text-primary active:cursor-grabbing"
@@ -1017,25 +1203,19 @@ export function HomeSectionsManager({
                         </Button>
                       </div>
                     </div>
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{getSectionDescription(section)}</p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {getSectionContents(section).map((item) => (
-                        <span key={item} className="rounded-sm border border-border/70 px-2 py-0.5 text-xs text-muted-foreground">
-                          {item}
-                        </span>
-                      ))}
-                    </div>
+                    {getSectionDescription(getSectionWithDraft(section)) && (
+                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                        {getSectionDescription(getSectionWithDraft(section))}
+                      </p>
+                    )}
                   </div>
 
-                  <div className="col-start-2 md:col-auto md:justify-self-stretch">
+                  <div className="col-start-2 min-w-0 max-w-full overflow-hidden md:col-auto md:justify-self-stretch">
                     <SectionPreview
-                      section={
-                        openSectionId === section.id && draftContent
-                          ? ({ ...section, content: { ...section.content, ...draftContent } } as HomeSection)
-                          : section
-                      }
+                      section={getSectionWithDraft(section)}
                       portfolioPreviewItems={portfolioPreviewItems}
                       flashPreviewItems={flashPreviewItems}
+                      onItemOrderChange={updateSectionItemOrder}
                     />
                   </div>
 
@@ -1078,7 +1258,10 @@ export function HomeSectionsManager({
                   >
                     <input name="section_key" type="hidden" value={section.id} />
                     <input name="type" type="hidden" value={section.type} />
-                    <HomeSectionContentFields section={section} tattooStyles={tattooStyles} flashStyles={flashStyles} />
+                    {isGallerySection(getSectionWithDraft(section)) && (
+                      <input name="item_order" type="hidden" value={getGallerySectionItemOrderValue(getSectionWithDraft(section))} readOnly />
+                    )}
+                    <HomeSectionContentFields section={getSectionWithDraft(section)} tattooStyles={tattooStyles} flashStyles={flashStyles} />
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         {getSectionDefinition(section.type)?.deletable && (

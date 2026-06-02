@@ -6,6 +6,7 @@ import { useState } from "react"
 
 import { TattooImageLightbox } from "@/components/tattoo-image-lightbox"
 import type { FlashDesign } from "@/data/flash-designs"
+import type { FlashPageSectionContent, FlashPageSectionLayout, FlashPageSectionStyle } from "@/data/page-sections"
 import { useLightboxOpenGuard } from "@/hooks/use-lightbox-open-guard"
 
 import { FlashDesignCard } from "./flash-design-card"
@@ -15,11 +16,22 @@ const statuses = ["Todo", "Disponible", "Reservado", "Reclamado"] as const
 type FlashStatusFilter = (typeof statuses)[number]
 
 type FlashGalleryProps = {
+  content: FlashPageSectionContent
   designs: FlashDesign[]
+  layout: FlashPageSectionLayout
+  style: FlashPageSectionStyle
   whatsappUrl?: string
 }
 
-export function FlashGallery({ designs, whatsappUrl }: FlashGalleryProps) {
+const sectionBackgroundClassNames: Record<FlashPageSectionStyle["background"], string> = {
+  default: "bg-background",
+}
+
+const gridClassNames: Record<`${FlashPageSectionLayout["columnsTablet"]}-${FlashPageSectionLayout["columnsDesktop"]}`, string> = {
+  "2-3": "md:grid-cols-2 xl:grid-cols-3",
+}
+
+export function FlashGallery({ content, designs, layout, style, whatsappUrl }: FlashGalleryProps) {
   const [selectedDesign, setSelectedDesign] = useState<FlashDesign | null>(null)
   const canOpenLightbox = useLightboxOpenGuard()
   const pathname = usePathname()
@@ -40,6 +52,7 @@ export function FlashGallery({ designs, whatsappUrl }: FlashGalleryProps) {
     : selectedStatus === "Todo"
       ? designs
       : designs.filter((design) => design.status === selectedStatus)
+  const gridColumns = gridClassNames[`${layout.columnsTablet}-${layout.columnsDesktop}`]
 
   function selectStatus(status: FlashStatusFilter) {
     const nextParams = new URLSearchParams(searchParams)
@@ -65,7 +78,7 @@ export function FlashGallery({ designs, whatsappUrl }: FlashGalleryProps) {
   }
 
   return (
-    <section className="relative bg-background grunge-texture py-20 md:py-24">
+    <section className={`relative ${sectionBackgroundClassNames[style.background]} grunge-texture py-20 md:py-24`} data-layout={layout.layoutStyle}>
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -73,13 +86,17 @@ export function FlashGallery({ designs, whatsappUrl }: FlashGalleryProps) {
           transition={{ duration: 0.6 }}
           className="mx-auto max-w-4xl text-center"
         >
-          <span className="text-secondary tracking-[0.3em] text-sm uppercase font-serif">Listos para tatuar</span>
-          <h1 className="mt-3 text-6xl md:text-8xl lg:text-9xl font-sans tracking-wider leading-none fire-glow">
-            <span className="text-primary">DISEÑOS</span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg md:text-xl text-muted-foreground font-serif italic">
-            Diseños tradicionales listos para elegir, ubicar y tatuar con líneas claras.
-          </p>
+          {content.eyebrow && <span className="text-secondary tracking-[0.3em] text-sm uppercase font-serif">{content.eyebrow}</span>}
+          {(content.title || content.highlightedTitle) && (
+            <h1 className="mt-3 text-6xl md:text-8xl lg:text-9xl font-sans tracking-wider leading-none fire-glow">
+              {content.title} <span className="text-primary">{content.highlightedTitle}</span>
+            </h1>
+          )}
+          {content.description && (
+            <p className="mx-auto mt-6 max-w-2xl text-lg md:text-xl text-muted-foreground font-serif italic">
+              {content.description}
+            </p>
+          )}
         </motion.div>
 
         <div className="mt-10 flex flex-wrap justify-center gap-3">
@@ -103,7 +120,7 @@ export function FlashGallery({ designs, whatsappUrl }: FlashGalleryProps) {
           ))}
         </div>
 
-        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className={`mt-14 grid grid-cols-1 gap-6 ${gridColumns}`}>
           {filteredDesigns.map((design, index) => (
             <FlashDesignCard
               key={design.id}
@@ -116,7 +133,7 @@ export function FlashGallery({ designs, whatsappUrl }: FlashGalleryProps) {
         </div>
         {filteredDesigns.length === 0 && (
           <p className="mt-10 text-center font-serif text-lg italic text-muted-foreground">
-            {requestedDesignId ? "No encontramos ese diseño por ahora." : "No hay diseños con este estado por ahora."}
+            {requestedDesignId ? content.missingDesignState : content.emptyState}
           </p>
         )}
       </div>

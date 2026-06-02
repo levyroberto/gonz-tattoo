@@ -21,8 +21,35 @@ export function matchesTags(itemTags: string[] | undefined, filterTags: string) 
   return selectedTags.some((tag) => normalizedTags.includes(tag))
 }
 
+function applySectionItemOrder<T extends { id: number }>(items: T[], itemOrder: number[] | undefined) {
+  if (!itemOrder || itemOrder.length === 0) {
+    return items
+  }
+
+  const orderIndex = new Map(itemOrder.map((id, index) => [id, index]))
+
+  return items.toSorted((firstItem, secondItem) => {
+    const firstIndex = orderIndex.get(firstItem.id)
+    const secondIndex = orderIndex.get(secondItem.id)
+
+    if (firstIndex === undefined && secondIndex === undefined) {
+      return 0
+    }
+
+    if (firstIndex === undefined) {
+      return 1
+    }
+
+    if (secondIndex === undefined) {
+      return -1
+    }
+
+    return firstIndex - secondIndex
+  })
+}
+
 export function filterPortfolioItems(items: Tattoo[], section: Extract<HomeSection, { type: "featuredPortfolio" }>) {
-  return items
+  const filteredItems = items
     .filter((item) => !section.content.featuredOnly || item.isFeatured)
     .filter((item) => !section.content.filterStyle || item.style.toLowerCase() === section.content.filterStyle.toLowerCase())
     .filter((item) => matchesTags(item.tags, section.content.filterTags))
@@ -33,12 +60,16 @@ export function filterPortfolioItems(items: Tattoo[], section: Extract<HomeSecti
 
       return dateCompare || (firstItem.displayOrder ?? 0) - (secondItem.displayOrder ?? 0)
     })
+
+  return applySectionItemOrder(filteredItems, section.content.itemOrder)
     .slice(0, section.content.limit)
 }
 
 export function filterFlashDesigns(items: FlashDesign[], section: Extract<HomeSection, { type: "flashPreview" }>) {
-  return items
+  const filteredItems = items
     .filter((item) => !section.content.filterStyle || item.style.toLowerCase() === section.content.filterStyle.toLowerCase())
     .filter((item) => matchesTags(item.tags, section.content.filterTags))
+
+  return applySectionItemOrder(filteredItems, section.content.itemOrder)
     .slice(0, section.content.limit)
 }

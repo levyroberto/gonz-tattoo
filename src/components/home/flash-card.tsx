@@ -29,7 +29,7 @@ export function FlashCard({ design, index }: FlashCardProps) {
       className="group relative aspect-square w-full overflow-hidden bg-muted/30"
     >
       <Link href={`/disenos?id=${design.id}`} className="block h-full w-full text-left">
-        <Image src={design.image} alt={design.name} fill className="object-cover" />
+        <Image src={design.image} alt={design.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
         <span className={`absolute top-3 right-3 border px-2.5 py-1 text-[0.65rem] font-sans tracking-widest uppercase ${statusBadgeStyles[design.status]}`}>
           {design.status}
         </span>
