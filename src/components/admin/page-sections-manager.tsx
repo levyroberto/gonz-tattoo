@@ -179,11 +179,11 @@ function SectionFieldControl({ field, section }: { field: SectionFieldDefinition
   switch (field.type) {
     case "image":
       return (
-        <label className="grid gap-1 text-sm text-muted-foreground">
-          {field.label}
+        <div className="grid gap-1 text-sm text-muted-foreground">
+          <span>{field.label}</span>
           <SinglePreviewImage alt={`Vista previa de ${field.label}`} src={typeof rawValue === "string" ? rawValue : ""} />
           <ImageInput defaultUrl={typeof rawValue === "string" ? rawValue : ""} />
-        </label>
+        </div>
       )
     case "textarea":
       return <TextareaField label={field.label} name={field.formName} defaultValue={String(rawValue ?? "")} required={required} />
