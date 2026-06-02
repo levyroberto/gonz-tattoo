@@ -48,11 +48,6 @@ export type AboutPageSectionContent = {
   title: string
   paragraphs: string[]
   quote: string
-  stats: Array<{
-    value: string
-    label: string
-    tone: "primary" | "secondary" | "accent"
-  }>
 }
 
 export type AboutPageSectionLayout = {
@@ -77,10 +72,6 @@ export type ContactPageSectionContent = {
   whatsappLabel: string
   instagramLabel: string
   yearsLabel: string
-  addressValue: string
-  scheduleValue: string
-  directValue: string
-  directLabel: string
 }
 
 export type ContactPageSectionLayout = {
@@ -156,11 +147,6 @@ export const pageSections: Record<EditablePageKey, PageSection> = {
         "Cada tatuaje se piensa para que funcione en el cuerpo: contraste, lectura a distancia y una presencia que envejezca bien.",
       ],
       quote: "La idea es que cada pieza tenga caracter, oficio y algo propio de quien la lleva.",
-      stats: [
-        { value: "Old", label: "school", tone: "primary" },
-        { value: "Flash", label: "y personalizados", tone: "secondary" },
-        { value: "CABA", label: "Parque Chacabuco", tone: "accent" },
-      ],
     },
     layout: {
       imageSide: "left",
@@ -188,10 +174,6 @@ export const pageSections: Record<EditablePageKey, PageSection> = {
       whatsappLabel: "WhatsApp",
       instagramLabel: "Instagram",
       yearsLabel: "Años",
-      addressValue: "6969",
-      scheduleValue: "Mar-Sab",
-      directValue: "Diseños",
-      directLabel: "Consultas directas",
     },
     layout: {
       layoutStyle: "image-left-card",

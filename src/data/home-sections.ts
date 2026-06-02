@@ -80,11 +80,6 @@ export type AboutSectionContent = {
   title: string
   paragraphs: string[]
   quote: string
-  stats: Array<{
-    value: string
-    label: string
-    tone: "primary" | "secondary" | "accent"
-  }>
 }
 
 export type AboutSectionLayout = {
@@ -142,11 +137,6 @@ export const aboutSectionDefaults: Pick<AboutHomeSection, "content" | "layout" |
     title: "",
     paragraphs: [],
     quote: "",
-    stats: [
-      { value: "", label: "", tone: "primary" },
-      { value: "", label: "", tone: "secondary" },
-      { value: "", label: "", tone: "accent" },
-    ],
   },
   layout: {
     imageSide: "left",

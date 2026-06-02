@@ -11,29 +11,22 @@ type AboutSectionProps = {
   content: AboutSectionContent
   layout: AboutSectionLayout
   style: AboutSectionStyle
+  image?: string
 }
 
 const sectionBackgroundClassNames: Record<AboutSectionStyle["background"], string> = {
   card: "bg-card",
 }
 
-const statToneClassNames: Record<AboutSectionContent["stats"][number]["tone"], string> = {
-  primary: "text-primary",
-  secondary: "text-secondary",
-  accent: "text-accent",
-}
-
-export function AboutSection({ settings, content, layout, style }: AboutSectionProps) {
-  const visibleStats = content.stats.filter((stat) => stat.value || stat.label)
-
+export function AboutSection({ settings, content, layout, style, image }: AboutSectionProps) {
   return (
     <section id="about" className={`relative scroll-mt-20 py-24 ${sectionBackgroundClassNames[style.background]} grunge-texture`} data-image-side={layout.imageSide}>
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {style.image && (
+          {image && (
             <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }} className="relative">
               <div className="relative aspect-[4/5] vintage-border overflow-hidden">
-                <Image src={style.image} alt="" fill sizes="(min-width: 1024px) 50vw, 100vw" unoptimized className="object-cover" />
+                <Image src={image} alt="" fill sizes="(min-width: 1024px) 50vw, 100vw" unoptimized className="object-cover" />
                 <div className="absolute inset-0 shadow-[inset_0_0_50px_rgba(0,0,0,0.5)]" />
               </div>
               {settings.artistYears && (
@@ -63,17 +56,6 @@ export function AboutSection({ settings, content, layout, style }: AboutSectionP
               ))}
               {content.quote && <p className="text-foreground italic">&quot;{content.quote}&quot;</p>}
             </div>
-
-            {visibleStats.length > 0 && (
-            <div className="grid grid-cols-3 gap-6 mt-8 pt-8 border-t border-border">
-              {visibleStats.map((stat) => (
-                <div key={stat.label}>
-                  <span className={`block text-3xl font-sans ${statToneClassNames[stat.tone]}`}>{stat.value}</span>
-                  <span className="text-sm text-muted-foreground">{stat.label}</span>
-                </div>
-              ))}
-            </div>
-            )}
           </motion.div>
         </div>
       </div>

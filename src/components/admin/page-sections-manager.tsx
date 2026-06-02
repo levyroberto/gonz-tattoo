@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, ImagePlus, Images, Mail, User, type LucideIcon } from "lucide-react"
 import { type FormEvent, type ReactNode, useState } from "react"
 
 import { updateHomeSectionContent } from "@/app/admin/actions"
@@ -17,7 +17,14 @@ import {
   type SectionFieldDefinition,
   type SectionFieldWidth,
 } from "@/data/home-section-schema"
-import type { EditablePageKey, PageSection } from "@/data/page-sections"
+import type { EditablePageKey, PageSection, PageSectionType } from "@/data/page-sections"
+
+const sectionBadgeIcons: Record<PageSectionType, LucideIcon> = {
+  portfolioPage: Images,
+  flashPage: ImagePlus,
+  aboutPage: User,
+  contactPage: Mail,
+}
 
 const fieldClass = "h-9 rounded-md border border-border bg-input px-3 text-foreground outline-none focus:border-primary"
 const tallFieldClass = "min-h-24 rounded-md border border-border bg-input px-3 py-2 text-foreground outline-none focus:border-primary"
@@ -150,29 +157,6 @@ function ButtonPreviewField({
   )
 }
 
-function StatsFields({ section }: { section: PageSection }) {
-  const stats = section.type === "aboutPage" ? section.content.stats : []
-
-  return (
-    <div className="grid gap-3">
-      {stats.map((stat, index) => (
-        <div key={index} className="grid gap-2 rounded-md border border-border bg-muted/20 p-3 md:grid-cols-[1fr_1fr_10rem]">
-          <FormField label={`Metrica ${index + 1}`} name={`stat_value_${index}`} defaultValue={stat.value} />
-          <FormField label="Texto" name={`stat_label_${index}`} defaultValue={stat.label} />
-          <label className="grid gap-1 text-sm text-muted-foreground">
-            Tono
-            <select className={fieldClass} name={`stat_tone_${index}`} defaultValue={stat.tone}>
-              <option value="primary">Primario</option>
-              <option value="secondary">Secundario</option>
-              <option value="accent">Acento</option>
-            </select>
-          </label>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 function SectionFieldControl({ field, section }: { field: SectionFieldDefinition; section: PageSection }) {
   const content = section.content as Record<string, unknown>
   const layout = section.layout as Record<string, unknown>
@@ -214,8 +198,6 @@ function SectionFieldControl({ field, section }: { field: SectionFieldDefinition
       )
     case "select":
       return <SelectField label={field.label} name={field.formName} defaultValue={String(rawValue ?? "")} options={field.options ?? []} required={required} />
-    case "stats":
-      return <StatsFields section={section} />
     case "number":
     case "text":
     default:
@@ -292,6 +274,7 @@ export function PageSectionsManager({ sections }: { sections: PageSectionItem[] 
       <CardContent className="grid gap-3">
         {items.map(({ pageKey, section }) => {
           const definition = getSectionDefinition(section.type)
+          const BadgeIcon = sectionBadgeIcons[section.type]
           const visibleSection = openPageKey === pageKey && draft
             ? ({ ...section, content: { ...section.content, ...draft.content }, layout: { ...section.layout, ...draft.layout } } as PageSection)
             : section
@@ -310,13 +293,15 @@ export function PageSectionsManager({ sections }: { sections: PageSectionItem[] 
                       {getPageLabel(pageKey)}
                     </button>
                     {definition && (
-                      <span className={`rounded-sm border px-2 py-0.5 text-xs font-medium ${definition.badge.className}`}>
-                        {definition.badge.label}
+                      <span
+                        className={`inline-grid size-6 place-items-center rounded-sm border ${definition.badge.className}`}
+                        title={definition.badge.label}
+                        aria-label={definition.badge.label}
+                      >
+                        <BadgeIcon className="size-3.5" aria-hidden="true" />
                       </span>
                     )}
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{definition?.description}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Titulo actual: {getSectionDisplayTitle(visibleSection)}</p>
                 </div>
                 <Button type="button" variant="ghost" size="icon" aria-label={`Editar ${getPageLabel(pageKey)}`} onClick={() => toggleOpen(pageKey)}>
                   <ChevronDown className={`transition-transform ${openPageKey === pageKey ? "rotate-180" : ""}`} aria-hidden="true" />

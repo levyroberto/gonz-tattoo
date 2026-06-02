@@ -671,25 +671,6 @@ function FieldWrapper({ children, width = "full" }: { children: ReactNode; width
   return <div className={fieldWidthClass[width]}>{children}</div>
 }
 
-function StatsFields({ section }: { section: HomeSection }) {
-  const stats =
-    section.type === "about"
-      ? section.content.stats
-      : ([] as { value: string; label: string; tone: string }[])
-
-  return (
-    <div className="grid w-full gap-3">
-      {stats.map((stat, index) => (
-        <div key={stat.tone} className="grid gap-3 rounded-md border border-border p-3 md:grid-cols-2">
-          <input name={`stat_tone_${index}`} type="hidden" value={stat.tone} />
-          <FormField label={`Métrica ${index + 1}`} name={`stat_value_${index}`} defaultValue={stat.value} />
-          <FormField label="Texto" name={`stat_label_${index}`} defaultValue={stat.label} />
-        </div>
-      ))}
-    </div>
-  )
-}
-
 function SectionFieldControl({
   field,
   flashStyles,
@@ -766,8 +747,6 @@ function SectionFieldControl({
           options={field.styleOptions === "flash" ? flashStyles : tattooStyles}
         />
       )
-    case "stats":
-      return <StatsFields section={section} />
     case "number":
     case "text":
     default:

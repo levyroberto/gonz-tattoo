@@ -90,28 +90,7 @@ export function ContactPageContent({ content, layout, settings, style }: Contact
             </motion.article>
           </div>
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-          className="mt-12 grid grid-cols-1 gap-4 border-y border-border py-8 text-center md:grid-cols-3"
-        >
-          <div>
-            <span className="block text-3xl font-sans text-primary">{content.addressValue}</span>
-            <span className="text-sm text-muted-foreground font-serif">{settings.studioAddress}</span>
-          </div>
-          <div>
-            <span className="block text-3xl font-sans text-secondary">{content.scheduleValue}</span>
-            <span className="text-sm text-muted-foreground font-serif">{settings.studioHours}</span>
-          </div>
-          <div>
-            <span className="block text-3xl font-sans text-accent">{content.directValue}</span>
-            <span className="text-sm text-muted-foreground font-serif">{content.directLabel}</span>
-          </div>
-        </motion.div>
       </div>
     </section>
   )
-}
+} 
