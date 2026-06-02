@@ -425,8 +425,10 @@ export function SortablePortfolioList({
                     <LabeledField label="Tags" alignTop compact>
                       <TagInputField className={fieldClass} defaultValue={(item.tags ?? []).join(", ")} placeholder="Agregar tag" />
                     </LabeledField>
-                    <ActiveToggle defaultChecked={item.isFeatured ?? false} label="Destacado" name="is_featured" />
-                    <ActiveToggle defaultChecked={item.isActive ?? true} />
+                    <div className="grid gap-2 sm:pl-[108px]">
+                      <ActiveToggle defaultChecked={item.isFeatured ?? false} label="Destacado" name="is_featured" />
+                      <ActiveToggle defaultChecked={item.isActive ?? true} />
+                    </div>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -688,7 +690,9 @@ export function SortableFlashList({
                         <option value="Reclamado">Reclamado</option>
                       </select>
                     </LabeledField>
-                    <ActiveToggle defaultChecked={item.isActive ?? true} />
+                    <div className="sm:pl-[108px]">
+                      <ActiveToggle defaultChecked={item.isActive ?? true} />
+                    </div>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
