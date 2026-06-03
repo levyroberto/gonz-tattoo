@@ -24,6 +24,7 @@ import { type FormEvent, type ReactNode, useEffect, useRef, useState, useTransit
 
 import { createHomeSection, deleteHomeSection, reorderHomeSections, updateHomeSectionContent, updateHomeSectionEnabled } from "@/app/admin/actions"
 import { AdminActionForm, FormMessage } from "@/components/admin/admin-action-form"
+import { ButtonPreviewField } from "@/components/admin/button-preview-field"
 import { ConfirmDeleteModal } from "@/components/admin/confirm-delete-modal"
 import { ImageInput } from "@/components/admin/image-input"
 import { Button } from "@/components/ui/button"
@@ -37,7 +38,6 @@ import {
   getSectionDisplayTitle,
   parseSectionContentFromForm,
   parseSectionLayoutFromForm,
-  type ButtonPreviewVariant,
   type SectionFieldDefinition,
   type SectionFieldWidth,
 } from "@/data/home-section-schema"
@@ -538,83 +538,6 @@ function TagFilterField({
   )
 }
 
-const buttonPreviewClass: Record<ButtonPreviewVariant, string> = {
-  primaryFilled: "border-2 border-primary bg-primary text-primary-foreground placeholder:text-primary-foreground/50",
-  primaryOutline: "border-2 border-primary bg-transparent text-primary placeholder:text-primary/50",
-  secondaryFilled: "border-2 border-secondary bg-secondary text-secondary-foreground placeholder:text-secondary-foreground/50",
-  secondaryOutline: "border-2 border-secondary bg-transparent text-secondary placeholder:text-secondary/50",
-  doubleBorder: "border border-border bg-transparent text-foreground placeholder:text-foreground/50 hover:border-primary hover:text-primary",
-}
-
-const galleryLayoutButtonPreviewVariants: Record<string, ButtonPreviewVariant> = {
-  carousel: "primaryOutline",
-  grid: "doubleBorder",
-  "framed-grid": "secondaryFilled",
-  "bento-grid": "doubleBorder",
-}
-
-function getButtonPreviewVariant(section: HomeSection, fallbackVariant: ButtonPreviewVariant) {
-  if (section.type !== "featuredPortfolio" && section.type !== "flashPreview") {
-    return fallbackVariant
-  }
-
-  return galleryLayoutButtonPreviewVariants[section.layout.layoutStyle] ?? fallbackVariant
-}
-
-function ButtonPreviewField({
-  defaultValue,
-  label,
-  name,
-  required = true,
-  variant,
-}: {
-  defaultValue: string
-  label: string
-  name: string
-  required?: boolean
-  variant: ButtonPreviewVariant
-}) {
-  if (variant === "doubleBorder") {
-    return (
-      <label className="grid gap-1 text-sm text-muted-foreground">
-        <span className="flex flex-wrap items-center gap-2">
-          {label} - vista previa
-          <span className="rounded-sm border border-border bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-            Preview
-          </span>
-        </span>
-        <span className="relative block before:absolute before:-bottom-1 before:-right-1 before:left-1 before:top-1 before:border before:border-primary before:opacity-0 before:transition-opacity hover:before:opacity-100">
-          <input
-            className={`h-10 w-full rounded-md px-4 text-center font-sans text-sm uppercase tracking-widest outline-none transition-colors placeholder:normal-case placeholder:tracking-normal focus:ring-2 focus:ring-primary/40 ${buttonPreviewClass[variant]}`}
-            name={name}
-            defaultValue={defaultValue}
-            required={required}
-            placeholder="Texto del botón"
-          />
-        </span>
-      </label>
-    )
-  }
-
-  return (
-    <label className="grid gap-1 text-sm text-muted-foreground">
-      <span className="flex flex-wrap items-center gap-2">
-        {label} - vista previa
-        <span className="rounded-sm border border-border bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-          Preview
-        </span>
-      </span>
-      <input
-        className={`h-10 w-full rounded-md px-4 text-center font-sans text-sm uppercase tracking-widest outline-none transition-colors placeholder:normal-case placeholder:tracking-normal focus:ring-2 focus:ring-primary/40 ${buttonPreviewClass[variant]}`}
-        name={name}
-        defaultValue={defaultValue}
-        required={required}
-        placeholder="Texto del botón"
-      />
-    </label>
-  )
-}
-
 function StyleFilterSelectField({
   defaultValue,
   label,
@@ -757,7 +680,7 @@ function SectionFieldControl({
         name={field.formName}
         defaultValue={String(rawValue ?? "")}
         required={required}
-        variant={getButtonPreviewVariant(section, field.buttonPreview)}
+        variant={field.buttonPreview}
       />
     )
   }

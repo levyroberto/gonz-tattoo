@@ -17,14 +17,15 @@ const WhatsAppIcon = () => (
 type WhatsAppButtonVariant = "text" | "icon"
 
 type WhatsAppButtonProps = {
-  href: string
+  href?: string
+  preview?: boolean
   variant?: WhatsAppButtonVariant
-  children?: React.ReactNode  // label para variant="text"
+  children?: React.ReactNode
   className?: string
 }
 
-export function WhatsAppButton({ href, variant = "text", children, className = "" }: WhatsAppButtonProps) {
-  if (variant === "icon") {
+export function WhatsAppButton({ href = "#", preview = false, variant = "text", children, className = "" }: WhatsAppButtonProps) {
+  if (variant === "icon" && !preview) {
     return (
       <a
         href={href}
@@ -35,6 +36,18 @@ export function WhatsAppButton({ href, variant = "text", children, className = "
       >
         <WhatsAppIcon />
       </a>
+    )
+  }
+
+  if (preview) {
+    return (
+      <span
+        className={`inline-flex w-full items-center justify-center gap-3 font-sans uppercase transition-all duration-300 bg-primary text-primary-foreground px-8 py-4 text-lg tracking-widest hover:shadow-[0_0_20px_oklch(0.55_0.16_50/0.4),0_0_40px_oklch(0.45_0.18_25/0.2)] ${className}`}
+        style={{ clipPath: CLIP_PATH }}
+      >
+        <WhatsAppIcon />
+        {children}
+      </span>
     )
   }
 

@@ -5,6 +5,7 @@ import { type FormEvent, type ReactNode, useState } from "react"
 
 import { updateHomeSectionContent } from "@/app/admin/actions"
 import { AdminActionForm } from "@/components/admin/admin-action-form"
+import { ButtonPreviewField } from "@/components/admin/button-preview-field"
 import { ImageInput } from "@/components/admin/image-input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,7 +14,6 @@ import {
   getSectionDisplayTitle,
   parseSectionContentFromForm,
   parseSectionLayoutFromForm,
-  type ButtonPreviewVariant,
   type SectionFieldDefinition,
   type SectionFieldWidth,
 } from "@/data/home-section-schema"
@@ -108,14 +108,6 @@ function SelectField({
   )
 }
 
-const buttonPreviewClass: Record<ButtonPreviewVariant, string> = {
-  primaryFilled: "border-2 border-primary bg-primary text-primary-foreground placeholder:text-primary-foreground/50",
-  primaryOutline: "border-2 border-primary bg-transparent text-primary placeholder:text-primary/50",
-  secondaryFilled: "border-2 border-secondary bg-secondary text-secondary-foreground placeholder:text-secondary-foreground/50",
-  secondaryOutline: "border-2 border-secondary bg-transparent text-secondary placeholder:text-secondary/50",
-  doubleBorder: "border border-border bg-transparent text-foreground placeholder:text-foreground/50 hover:border-primary hover:text-primary",
-}
-
 function SinglePreviewImage({ alt, src }: { alt: string; src?: string }) {
   if (!src) {
     return (
@@ -128,32 +120,6 @@ function SinglePreviewImage({ alt, src }: { alt: string; src?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={src} alt={alt} className="h-20 w-full rounded-md border border-border bg-muted object-cover" loading="lazy" />
-  )
-}
-
-function ButtonPreviewField({
-  defaultValue,
-  label,
-  name,
-  required = true,
-  variant,
-}: {
-  defaultValue: string
-  label: string
-  name: string
-  required?: boolean
-  variant: ButtonPreviewVariant
-}) {
-  return (
-    <label className="grid gap-1 text-sm text-muted-foreground">
-      {label}
-      <input
-        className={`h-10 w-full rounded-md px-4 text-center font-sans text-sm uppercase tracking-widest outline-none transition-colors placeholder:normal-case placeholder:tracking-normal focus:ring-2 focus:ring-primary/40 ${buttonPreviewClass[variant]}`}
-        name={name}
-        defaultValue={defaultValue}
-        required={required}
-      />
-    </label>
   )
 }
 

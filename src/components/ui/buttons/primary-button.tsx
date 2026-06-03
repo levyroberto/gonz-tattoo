@@ -23,13 +23,23 @@ type PrimaryButtonProps = {
   children: ReactNode
   size?: Size
   className?: string
-} & (
-  | { href: string; onClick?: never }
-  | { href?: never; onClick: () => void }
-)
+  preview?: boolean
+  href?: string
+  onClick?: () => void
+}
 
-export function PrimaryButton({ children, size = "md", className = "", href, onClick }: PrimaryButtonProps) {
-  const classes = [BASE, sizeClasses[size], className].filter(Boolean).join(" ")
+export function PrimaryButton({ children, size = "md", className = "", preview = false, href, onClick }: PrimaryButtonProps) {
+  const classes = [BASE, sizeClasses[size], preview ? "inline-flex w-full items-center justify-center" : "inline-block", className]
+    .filter(Boolean)
+    .join(" ")
+
+  if (preview) {
+    return (
+      <span className={classes} style={{ clipPath: CLIP_PATH }}>
+        {children}
+      </span>
+    )
+  }
 
   if (href) {
     return (

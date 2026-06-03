@@ -17,14 +17,15 @@ const InstagramIcon = () => (
 type InstagramButtonVariant = "text" | "icon"
 
 type InstagramButtonProps = {
-  href: string
+  href?: string
+  preview?: boolean
   variant?: InstagramButtonVariant
-  children?: React.ReactNode  // label para variant="text"
+  children?: React.ReactNode
   className?: string
 }
 
-export function InstagramButton({ href, variant = "text", children, className = "" }: InstagramButtonProps) {
-  if (variant === "icon") {
+export function InstagramButton({ href = "#", preview = false, variant = "text", children, className = "" }: InstagramButtonProps) {
+  if (variant === "icon" && !preview) {
     return (
       <a
         href={href}
@@ -35,6 +36,18 @@ export function InstagramButton({ href, variant = "text", children, className = 
       >
         <InstagramIcon />
       </a>
+    )
+  }
+
+  if (preview) {
+    return (
+      <span
+        className={`inline-flex w-full items-center justify-center gap-3 font-sans uppercase transition-all duration-300 border-2 border-secondary text-secondary px-8 py-4 text-lg tracking-widest hover:bg-secondary hover:text-secondary-foreground hover:shadow-[0_0_15px_oklch(0.55_0.12_85/0.3)] ${className}`}
+        style={{ clipPath: CLIP_PATH }}
+      >
+        <InstagramIcon />
+        {children}
+      </span>
     )
   }
 
