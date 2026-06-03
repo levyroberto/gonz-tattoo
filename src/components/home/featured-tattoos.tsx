@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import { useState } from "react"
 
-import { TattooImageLightbox } from "@/components/tattoo-image-lightbox"
+import { TattooImageLightbox } from "@/components/ui/tattoo-image-lightbox"
 import type { FeaturedPortfolioSectionContent, FeaturedPortfolioSectionLayout, FeaturedPortfolioSectionStyle } from "@/data/home-sections"
 import type { Tattoo } from "@/data/tattoos"
 import { useLightboxOpenGuard } from "@/hooks/use-lightbox-open-guard"
@@ -13,6 +13,8 @@ import {
   BracketGridLayout,
   CarouselGalleryLayout,
   FramedGridLayout,
+  GrungeGalleryLayout,
+  WideGridLayout,
   type SharedGalleryItem,
   type SharedGalleryLayoutStyle,
 } from "./shared-gallery-layouts"
@@ -47,6 +49,7 @@ export function FeaturedTattoos({ tattoos, content, layout, style }: FeaturedTat
   const hasHeader = Boolean(content.eyebrow || content.title || content.highlightedTitle)
   const action = content.buttonHref && content.buttonLabel ? { href: content.buttonHref, label: content.buttonLabel } : undefined
   const layoutStyle = layout.layoutStyle
+  const columnsDesktop = layout.columnsDesktop
   const chrome = getLayoutChrome(layoutStyle)
 
   function openTattoo(tattoo: Tattoo) {
@@ -109,9 +112,11 @@ export function FeaturedTattoos({ tattoos, content, layout, style }: FeaturedTat
         )}
 
         {layoutStyle === "carousel" && <CarouselGalleryLayout items={items} action={action} />}
-        {layoutStyle === "grid" && <BracketGridLayout items={items} action={action} />}
-        {layoutStyle === "framed-grid" && <FramedGridLayout items={items} action={action} />}
+        {layoutStyle === "grid" && <BracketGridLayout items={items} action={action} columnsDesktop={columnsDesktop} />}
+        {layoutStyle === "framed-grid" && <FramedGridLayout items={items} action={action} columnsDesktop={columnsDesktop} />}
         {layoutStyle === "bento-grid" && <BentoGridLayout items={items} action={action} />}
+        {layoutStyle === "wide-grid" && <WideGridLayout items={items} action={action} />}
+        {layoutStyle === "grunge-gallery" && <GrungeGalleryLayout items={items} action={action} eyebrow={content.eyebrow} />}
       </div>
 
       <TattooImageLightbox tattoo={selectedTattoo} onClose={() => setSelectedTattoo(null)} />

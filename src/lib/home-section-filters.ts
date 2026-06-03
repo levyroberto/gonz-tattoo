@@ -48,7 +48,16 @@ function applySectionItemOrder<T extends { id: number }>(items: T[], itemOrder: 
   })
 }
 
-export function filterPortfolioItems(items: Tattoo[], section: Extract<HomeSection, { type: "featuredPortfolio" }>) {
+type SectionFilterOptions = {
+  applyLimit?: boolean
+}
+
+export function filterPortfolioItems(
+  items: Tattoo[],
+  section: Extract<HomeSection, { type: "featuredPortfolio" }>,
+  options: SectionFilterOptions = {}
+) {
+  const shouldApplyLimit = options.applyLimit ?? true
   const filteredItems = items
     .filter((item) => !section.content.featuredOnly || item.isFeatured)
     .filter((item) => !section.content.filterStyle || item.style.toLowerCase() === section.content.filterStyle.toLowerCase())
@@ -61,15 +70,22 @@ export function filterPortfolioItems(items: Tattoo[], section: Extract<HomeSecti
       return dateCompare || (firstItem.displayOrder ?? 0) - (secondItem.displayOrder ?? 0)
     })
 
-  return applySectionItemOrder(filteredItems, section.content.itemOrder)
-    .slice(0, section.content.limit)
+  const orderedItems = applySectionItemOrder(filteredItems, section.content.itemOrder)
+
+  return shouldApplyLimit ? orderedItems.slice(0, section.content.limit) : orderedItems
 }
 
-export function filterFlashDesigns(items: FlashDesign[], section: Extract<HomeSection, { type: "flashPreview" }>) {
+export function filterFlashDesigns(
+  items: FlashDesign[],
+  section: Extract<HomeSection, { type: "flashPreview" }>,
+  options: SectionFilterOptions = {}
+) {
+  const shouldApplyLimit = options.applyLimit ?? true
   const filteredItems = items
     .filter((item) => !section.content.filterStyle || item.style.toLowerCase() === section.content.filterStyle.toLowerCase())
     .filter((item) => matchesTags(item.tags, section.content.filterTags))
 
-  return applySectionItemOrder(filteredItems, section.content.itemOrder)
-    .slice(0, section.content.limit)
+  const orderedItems = applySectionItemOrder(filteredItems, section.content.itemOrder)
+
+  return shouldApplyLimit ? orderedItems.slice(0, section.content.limit) : orderedItems
 }

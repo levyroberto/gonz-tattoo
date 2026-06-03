@@ -29,7 +29,7 @@ import {
   updateFlashDesign,
   updatePortfolioItem,
 } from "@/app/admin/actions"
-import { AdminActionForm, FieldError, hasImageValue, type RequiredFieldRule } from "@/components/admin/admin-action-form"
+import { AdminActionForm, FieldError, FormMessage, hasImageValue, type RequiredFieldRule } from "@/components/admin/admin-action-form"
 import { ActiveToggle } from "@/components/admin/active-toggle"
 import { ImageInput } from "@/components/admin/image-input"
 import { LabeledField } from "@/components/admin/labeled-field"
@@ -39,9 +39,7 @@ import { Button } from "@/components/ui/button"
 import type { FlashDesign } from "@/data/flash-designs"
 import type { Tattoo } from "@/data/tattoos"
 import { DeleteButton } from "./delete-button"
-const fieldClass = "h-9 rounded-md border border-border bg-input px-3 text-foreground outline-none focus:border-primary"
-const tallFieldClass = "min-h-20 rounded-md border border-border bg-input px-3 py-2 text-foreground outline-none focus:border-primary"
-const errorIndentClass = "sm:pl-[152px]"
+import { errorIndentClass, fieldClass, tallFieldClass } from "@/components/admin/admin-field-styles"
 
 const portfolioRequiredFields: RequiredFieldRule[] = [
   { name: "title", message: "El título es obligatorio." },
@@ -66,13 +64,6 @@ function matchesStatusFilter(isActive: boolean | undefined, filter: AdminStatusF
 
   return true
 }
-
-// function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
-//   const nextItems = [...items]
-//   const [movedItem] = nextItems.splice(fromIndex, 1)
-//   nextItems.splice(toIndex, 0, movedItem)
-//   return nextItems
-// }
 
 function getSortableItemId(itemId: number) {
   return `item-${itemId}`
@@ -162,51 +153,6 @@ function TagBadges({ tags }: { tags?: string[] }) {
   )
 }
 
-// function MobileMoveButtons({
-//   canMoveDown,
-//   canMoveUp,
-//   itemName,
-//   onMoveDown,
-//   onMoveUp,
-// }: {
-//   canMoveDown: boolean
-//   canMoveUp: boolean
-//   itemName: string
-//   onMoveDown: () => void
-//   onMoveUp: () => void
-// }) {
-//   return (
-//     <div className="grid shrink-0 grid-cols-2 gap-1 md:hidden">
-//       <button
-//         type="button"
-//         aria-label={`Subir ${itemName}`}
-//         className="flex size-8 cursor-pointer items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
-//         disabled={!canMoveUp}
-//         onClick={(event) => {
-//           event.preventDefault()
-//           event.stopPropagation()
-//           onMoveUp()
-//         }}
-//       >
-//         <MoveUp className="size-4" aria-hidden="true" />
-//       </button>
-//       <button
-//         type="button"
-//         aria-label={`Bajar ${itemName}`}
-//         className="flex size-8 cursor-pointer items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
-//         disabled={!canMoveDown}
-//         onClick={(event) => {
-//           event.preventDefault()
-//           event.stopPropagation()
-//           onMoveDown()
-//         }}
-//       >
-//         <MoveDown className="size-4" aria-hidden="true" />
-//       </button>
-//     </div>
-//   )
-// }
-
 type SortablePortfolioListProps = {
   items: Tattoo[]
   onItemsChange: Dispatch<SetStateAction<Tattoo[]>>
@@ -221,6 +167,7 @@ export function SortablePortfolioList({
   statusFilter = "all",
 }: SortablePortfolioListProps) {
   const [openItemId, setOpenItemId] = useState<number | null>(null)
+  const [dirtyItemIds, setDirtyItemIds] = useState<Set<number>>(new Set())
   const [message, setMessage] = useState<string | null>(null)
   const [isError, setIsError] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -306,21 +253,6 @@ export function SortablePortfolioList({
     persistOrder(nextItems)
   }
 
-  // function moveItemByStep(itemId: number, direction: -1 | 1) {
-  //   const fromIndex = orderedItems.findIndex((item) => item.id === itemId)
-  //   const toIndex = fromIndex + direction
-  //
-  //   if (fromIndex < 0 || toIndex < 0 || toIndex >= orderedItems.length) {
-  //     return
-  //   }
-  //
-  //   const nextItems = moveItem(orderedItems, fromIndex, toIndex)
-  //
-  //   setOpenItemId(null)
-  //   setOrderedItems(nextItems)
-  //   persistOrder(nextItems)
-  // }
-
   const visibleItems = orderedItems
     .map((item, index) => ({ item, index }))
     .filter(({ item }) => matchesStatusFilter(item.isActive, statusFilter))
@@ -363,13 +295,6 @@ export function SortablePortfolioList({
                 >
                   <GripVertical className="size-4" aria-hidden="true" />
                 </button>
-                {/* <MobileMoveButtons
-                  canMoveDown={index < orderedItems.length - 1}
-                  canMoveUp={index > 0}
-                  itemName={item.title}
-                  onMoveDown={() => moveItemByStep(item.id, 1)}
-                  onMoveUp={() => moveItemByStep(item.id, -1)}
-                /> */}
                 <AdminItemThumbnail src={item.image} alt={item.title} />
                 <button
                   type="button"
@@ -382,6 +307,11 @@ export function SortablePortfolioList({
                 </button>
               </div>
               <div className="flex shrink-0 items-center gap-2">
+                {dirtyItemIds.has(item.id) && openItemId !== item.id && (
+                  <span className="rounded-sm border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
+                    sin guardar
+                  </span>
+                )}
                 <StatusBadge isActive={item.isActive} />
                 <Button
                   type="button"
@@ -399,7 +329,14 @@ export function SortablePortfolioList({
               </div>
             </div>
             {openItemId === item.id && <div className="grid gap-3 border-t border-border p-3">
-              <AdminActionForm action={updatePortfolioItem} className="grid gap-3" onSuccess={updateItemFromForm} requiredFields={portfolioRequiredFields}>
+              <AdminActionForm
+                action={updatePortfolioItem}
+                className="grid gap-3"
+                onSuccess={updateItemFromForm}
+                onDirtyChange={(dirty) => setDirtyItemIds((prev) => { const next = new Set(prev); dirty ? next.add(item.id) : next.delete(item.id); return next })}
+                requiredFields={portfolioRequiredFields}
+                showMessageAtBottom={false}
+              >
                 <input name="id" type="hidden" value={item.id} />
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div className="grid gap-2">
@@ -439,7 +376,8 @@ export function SortablePortfolioList({
                     onSuccess={removeItemFromForm}
                   />
                   <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" onClick={() => setOpenItemId(null)}>
+                    <FormMessage />
+                    <Button type="button" variant="outline" onClick={() => { setOpenItemId(null); setDirtyItemIds((prev) => { const next = new Set(prev); next.delete(item.id); return next }) }}>
                       Cancelar
                     </Button>
                     <Button type="submit" variant="default">
@@ -474,6 +412,7 @@ export function SortableFlashList({
   statusFilter = "all",
 }: SortableFlashListProps) {
   const [openItemId, setOpenItemId] = useState<number | null>(null)
+  const [dirtyItemIds, setDirtyItemIds] = useState<Set<number>>(new Set())
   const [message, setMessage] = useState<string | null>(null)
   const [isError, setIsError] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -559,21 +498,6 @@ export function SortableFlashList({
     persistOrder(nextItems)
   }
 
-  // function moveItemByStep(itemId: number, direction: -1 | 1) {
-  //   const fromIndex = orderedItems.findIndex((item) => item.id === itemId)
-  //   const toIndex = fromIndex + direction
-  //
-  //   if (fromIndex < 0 || toIndex < 0 || toIndex >= orderedItems.length) {
-  //     return
-  //   }
-  //
-  //   const nextItems = moveItem(orderedItems, fromIndex, toIndex)
-  //
-  //   setOpenItemId(null)
-  //   setOrderedItems(nextItems)
-  //   persistOrder(nextItems)
-  // }
-
   const visibleItems = orderedItems
     .map((item, index) => ({ item, index }))
     .filter(({ item }) => matchesStatusFilter(item.isActive, statusFilter))
@@ -616,13 +540,6 @@ export function SortableFlashList({
                 >
                   <GripVertical className="size-4" aria-hidden="true" />
                 </button>
-                {/* <MobileMoveButtons
-                  canMoveDown={index < orderedItems.length - 1}
-                  canMoveUp={index > 0}
-                  itemName={item.name}
-                  onMoveDown={() => moveItemByStep(item.id, 1)}
-                  onMoveUp={() => moveItemByStep(item.id, -1)}
-                /> */}
                 <AdminItemThumbnail src={item.image} alt={item.name} />
                 <button
                   type="button"
@@ -640,6 +557,11 @@ export function SortableFlashList({
                 </button>
               </div>
               <div className="flex shrink-0 items-center gap-2">
+                {dirtyItemIds.has(item.id) && openItemId !== item.id && (
+                  <span className="rounded-sm border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
+                    sin guardar
+                  </span>
+                )}
                 <StatusBadge isActive={item.isActive} />
                 <Button
                   type="button"
@@ -657,7 +579,14 @@ export function SortableFlashList({
               </div>
             </div>
             {openItemId === item.id && <div className="grid gap-3 border-t border-border p-3">
-              <AdminActionForm action={updateFlashDesign} className="grid gap-3" onSuccess={updateItemFromForm} requiredFields={flashRequiredFields}>
+              <AdminActionForm
+                action={updateFlashDesign}
+                className="grid gap-3"
+                onSuccess={updateItemFromForm}
+                onDirtyChange={(dirty) => setDirtyItemIds((prev) => { const next = new Set(prev); dirty ? next.add(item.id) : next.delete(item.id); return next })}
+                requiredFields={flashRequiredFields}
+                showMessageAtBottom={false}
+              >
                 <input name="id" type="hidden" value={item.id} />
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div className="grid gap-2">
@@ -703,7 +632,8 @@ export function SortableFlashList({
                     onSuccess={removeItemFromForm}
                   />
                   <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" onClick={() => setOpenItemId(null)}>
+                    <FormMessage />
+                    <Button type="button" variant="outline" onClick={() => { setOpenItemId(null); setDirtyItemIds((prev) => { const next = new Set(prev); next.delete(item.id); return next }) }}>
                       Cancelar
                     </Button>
                     <Button type="submit" variant="default">

@@ -1,23 +1,21 @@
 "use client"
 
-import type { FormEvent } from "react"
+import { type FormEvent } from "react"
 
 import { updateSiteSettings } from "@/app/admin/actions"
-import { AdminActionForm } from "@/components/admin/admin-action-form"
+import { AdminActionForm, FormMessage } from "@/components/admin/admin-action-form"
 import { CollapsibleAdminCard } from "@/components/admin/collapsible-admin-card"
 import { Button } from "@/components/ui/button"
 import type { SiteSettings } from "@/lib/supabase/content"
 
 const fieldClass = "h-9 rounded-md border border-border bg-input px-3 text-foreground outline-none focus:border-primary"
+
 type SiteSettingsFormProps = {
   settings: SiteSettings
 }
 
 function getInstagramHandle(instagramUrl?: string) {
-  if (!instagramUrl) {
-    return ""
-  }
-
+  if (!instagramUrl) return ""
   try {
     const url = new URL(instagramUrl)
     return url.pathname.split("/").filter(Boolean)[0] ?? ""
@@ -26,24 +24,15 @@ function getInstagramHandle(instagramUrl?: string) {
   }
 }
 
-function getWhatsappPhone(whatsappUrl?: string) {
-  if (!whatsappUrl) {
-    return ""
-  }
-
+function getWhatsappLocalPhone(whatsappUrl?: string) {
+  if (!whatsappUrl) return ""
   try {
     const url = new URL(whatsappUrl)
-    const phoneFromPath = url.hostname.includes("wa.me") ? url.pathname.replace(/\D/g, "") : ""
-    const phoneFromQuery = url.searchParams.get("phone")?.replace(/\D/g, "")
-
-    return phoneFromPath || phoneFromQuery || ""
+    const phone = url.hostname.includes("wa.me") ? url.pathname.replace(/\D/g, "") : ""
+    return phone.replace(/^549/, "")
   } catch {
-    return whatsappUrl.replace(/\D/g, "")
+    return whatsappUrl.replace(/\D/g, "").replace(/^549/, "")
   }
-}
-
-function getWhatsappLocalPhone(whatsappUrl?: string) {
-  return getWhatsappPhone(whatsappUrl).replace(/^549/, "")
 }
 
 export function SiteSettingsForm({ settings }: SiteSettingsFormProps) {
@@ -56,7 +45,7 @@ export function SiteSettingsForm({ settings }: SiteSettingsFormProps) {
       title="Información del sitio"
       description="Datos globales usados en contacto, WhatsApp, Instagram y sobre mí."
     >
-      <AdminActionForm action={updateSiteSettings} className="grid gap-4">
+      <AdminActionForm action={updateSiteSettings} className="grid gap-4" showMessageAtBottom={false}>
         <div className="grid gap-3 md:grid-cols-2">
           <label className="grid gap-1.5 text-sm text-muted-foreground">
             Nombre del artista
@@ -103,9 +92,15 @@ export function SiteSettingsForm({ settings }: SiteSettingsFormProps) {
           <input className={fieldClass} name="studio_address" defaultValue={settings.studioAddress ?? ""} placeholder="Almagro, CABA" />
         </label>
 
-        <Button type="submit" className="justify-self-start">
-          Guardar información
-        </Button>
+        <div className="flex items-center gap-2 justify-self-end">
+          <FormMessage />
+          <Button type="reset" variant="outline">
+            Cancelar
+          </Button>
+          <Button type="submit">
+            Guardar información
+          </Button>
+        </div>
       </AdminActionForm>
     </CollapsibleAdminCard>
   )

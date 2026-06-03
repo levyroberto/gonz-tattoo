@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import Link from "next/link"
 import { useState } from "react"
 
-import { navLinks } from "@/data/site-content"
+import { ctaLink, navLinks } from "@/data/site-content"
 
 
 export function SiteHeader() {
@@ -42,13 +42,13 @@ export function SiteHeader() {
               </Link>
             ))}
             <Link
-              href="/contact"
+              href={ctaLink.href}
               className="px-6 py-2 bg-red-700 hover:bg-red-600 text-white text-sm tracking-[5px] uppercase transition-colors"
               style={{
                 clipPath: "polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%)",
               }}
             >
-              CONSULTAR
+              {ctaLink.label}
             </Link>
           </nav>
 
@@ -185,14 +185,14 @@ export function SiteHeader() {
                 transition={{ delay: 0.48 }}
               >
                 <Link
-                  href="/contact"
+                  href={ctaLink.href}
                   onClick={close}
                   className="block w-full py-4 bg-red-700 hover:bg-red-600 text-white text-center text-xl tracking-[6px] uppercase transition-colors"
                   style={{
                     clipPath: "polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%)",
                   }}
                 >
-                  CONSULTAR
+                  {ctaLink.label}
                 </Link>
               </motion.div>
 

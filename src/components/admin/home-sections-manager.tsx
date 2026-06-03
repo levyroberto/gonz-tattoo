@@ -23,7 +23,7 @@ import { ChevronDown, GripVertical, Plus, Trash2, X } from "lucide-react"
 import { type FormEvent, type ReactNode, useEffect, useRef, useState, useTransition } from "react"
 
 import { createHomeSection, deleteHomeSection, reorderHomeSections, updateHomeSectionContent, updateHomeSectionEnabled } from "@/app/admin/actions"
-import { AdminActionForm } from "@/components/admin/admin-action-form"
+import { AdminActionForm, FormMessage } from "@/components/admin/admin-action-form"
 import { ConfirmDeleteModal } from "@/components/admin/confirm-delete-modal"
 import { ImageInput } from "@/components/admin/image-input"
 import { Button } from "@/components/ui/button"
@@ -245,7 +245,7 @@ function PreviewImageStrip({
     <div className="min-w-0 max-w-full overflow-hidden">
       <DndContext id="section-preview-images-sortable" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={visibleImages.map((image) => `preview-${image.id}`)} strategy={horizontalListSortingStrategy}>
-          <div className="flex w-full min-w-0 max-w-full touch-pan-x gap-1.5 overflow-x-auto pb-1">
+          <div className="flex w-full min-w-0 max-w-[25.875rem] touch-pan-x gap-1.5 overflow-x-auto pb-1">
             {visibleImages.map((image) => (
               <SortablePreviewImage key={image.id} image={image} />
             ))}
@@ -288,7 +288,7 @@ function SectionPreview({
     case "featuredPortfolio":
       return (
         <PreviewImageStrip
-          images={filterPortfolioItems(portfolioPreviewItems, section).map((item) => ({ alt: item.title, id: item.id, src: item.image }))}
+          images={filterPortfolioItems(portfolioPreviewItems, section, { applyLimit: false }).map((item) => ({ alt: item.title, id: item.id, src: item.image }))}
           itemOrder={section.content.itemOrder}
           onReorder={(itemIds) => onItemOrderChange?.(section.id, itemIds)}
         />
@@ -296,7 +296,7 @@ function SectionPreview({
     case "flashPreview":
       return (
         <PreviewImageStrip
-          images={filterFlashDesigns(flashPreviewItems, section).map((item) => ({ alt: item.name, id: item.id, src: item.image }))}
+          images={filterFlashDesigns(flashPreviewItems, section, { applyLimit: false }).map((item) => ({ alt: item.name, id: item.id, src: item.image }))}
           itemOrder={section.content.itemOrder}
           onReorder={(itemIds) => onItemOrderChange?.(section.id, itemIds)}
         />
@@ -341,16 +341,32 @@ function FormField({
   label,
   name,
   required = true,
+  type = "text",
+  min,
+  max,
 }: {
   defaultValue: string
   label: string
   name: string
   required?: boolean
+  type?: "number" | "text"
+  min?: number
+  max?: number
 }) {
   return (
     <label className="grid gap-1 text-sm text-muted-foreground">
       {label}
-      <input className={fieldClass} name={name} defaultValue={defaultValue} required={required} />
+      <input
+        className={fieldClass}
+        name={name}
+        defaultValue={defaultValue}
+        inputMode={type === "number" ? "numeric" : undefined}
+        max={max}
+        min={min}
+        required={required}
+        step={type === "number" ? 1 : undefined}
+        type={type}
+      />
     </label>
   )
 }
@@ -382,6 +398,42 @@ function SelectField({
         ))}
       </select>
     </label>
+  )
+}
+
+function ColumnCountField({
+  defaultValue,
+  layoutStyle,
+  name,
+}: {
+  defaultValue: string
+  layoutStyle: string
+  name: string
+}) {
+  if (layoutStyle === "framed-grid") {
+    return (
+      <SelectField
+        label="Columnas a mostrar"
+        name={name}
+        defaultValue={defaultValue}
+        options={[
+          { label: "2", value: "2" },
+          { label: "3", value: "3" },
+        ]}
+      />
+    )
+  }
+
+  return (
+    <FormField
+      label="Columnas a mostrar"
+      name={name}
+      defaultValue={defaultValue}
+      required
+      type="number"
+      min={2}
+      max={8}
+    />
   )
 }
 
@@ -688,6 +740,16 @@ function SectionFieldControl({
   const required = field.required ?? true
   const rawValue = field.target === "style" ? style[field.key] : field.target === "layout" ? layout[field.key] : content[field.key]
 
+  if (field.key === "columnsDesktop") {
+    return (
+      <ColumnCountField
+        name={field.formName}
+        defaultValue={String(rawValue ?? "")}
+        layoutStyle={String(layout.layoutStyle ?? "")}
+      />
+    )
+  }
+
   if (field.buttonPreview) {
     return (
       <ButtonPreviewField
@@ -748,6 +810,7 @@ function SectionFieldControl({
         />
       )
     case "number":
+      return <FormField label={field.label} name={field.formName} defaultValue={String(rawValue ?? "")} required={required} type="number" min={field.min} max={field.max} />
     case "text":
     default:
       return <FormField label={field.label} name={field.formName} defaultValue={String(rawValue ?? "")} required={required} />
@@ -803,7 +866,18 @@ function HomeSectionContentFields({
     return null
   }
 
-  const mainFields = definition.fields.filter((field) => !field.inFilterBox)
+  const mainFields = definition.fields.filter((field) => {
+    const layoutStyle = "layoutStyle" in section.layout ? section.layout.layoutStyle : ""
+
+    if (
+      field.key === "columnsDesktop" &&
+      (layoutStyle === "bento-grid" || layoutStyle === "carousel" || layoutStyle === "wide-grid" || layoutStyle === "grunge-gallery")
+    ) {
+      return false
+    }
+
+    return !field.inFilterBox
+  })
   const filterFields = definition.fields.filter((field) => field.inFilterBox)
   const filterSummaryBadges = getFilterSummaryBadges(section)
 
@@ -881,6 +955,7 @@ export function HomeSectionsManager({
 }: HomeSectionsManagerProps) {
   const [orderedSections, setOrderedSections] = useState(sections)
   const [openSectionId, setOpenSectionId] = useState<string | null>(null)
+  const [dirtySectionIds, setDirtySectionIds] = useState<Set<string>>(new Set())
   const [draftContent, setDraftContent] = useState<HomeSectionDraft | null>(null)
   const [deletingSectionId, setDeletingSectionId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -1199,6 +1274,11 @@ export function HomeSectionsManager({
                   </div>
 
                   <div className="col-start-2 flex flex-wrap items-center gap-2 justify-self-start md:col-auto md:justify-self-end">
+                    {dirtySectionIds.has(section.id) && openSectionId !== section.id && (
+                      <span className="rounded-sm border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
+                        sin guardar
+                      </span>
+                    )}
                     <div className="hidden md:block">
                       <StatusBadge isActive={section.enabled} />
                     </div>
@@ -1234,6 +1314,18 @@ export function HomeSectionsManager({
                     className="grid gap-3"
                     onChange={(event) => handleSectionFormChange(section, event)}
                     onSuccess={updateSectionContent}
+                    onDirtyChange={(dirty) => setDirtySectionIds((prev) => {
+                      const next = new Set(prev)
+
+                      if (dirty) {
+                        next.add(section.id)
+                      } else {
+                        next.delete(section.id)
+                      }
+
+                      return next
+                    })}
+                    showMessageAtBottom={false}
                   >
                     <input name="section_key" type="hidden" value={section.id} />
                     <input name="type" type="hidden" value={section.type} />
@@ -1257,7 +1349,8 @@ export function HomeSectionsManager({
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button type="button" variant="outline" disabled={isPending} onClick={() => toggleOpenSection(section.id)}>
+                        <FormMessage />
+                        <Button type="button" variant="outline" disabled={isPending} onClick={() => { toggleOpenSection(section.id); setDirtySectionIds((prev) => { const next = new Set(prev); next.delete(section.id); return next }) }}>
                           Cancelar
                         </Button>
                         <Button type="submit" variant="default">
