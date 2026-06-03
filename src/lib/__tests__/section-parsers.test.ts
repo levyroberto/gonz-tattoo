@@ -140,6 +140,20 @@ describe("parseSectionContentFromForm — featuredPortfolio", () => {
     expect(layout.columnsDesktop).toBe(3)
     expect(layout.layoutStyle).toBe("carousel")
   })
+
+  it("fija grid ancho en 4 columnas", () => {
+    const formData = makeFormData({ columns_desktop: "6", layout_style: "wide-grid" })
+    const layout = parseSectionLayoutFromForm(formData, definition)
+    expect(layout.columnsDesktop).toBe(4)
+    expect(layout.layoutStyle).toBe("wide-grid")
+  })
+
+  it("fija grunge gallery en 1 columna", () => {
+    const formData = makeFormData({ columns_desktop: "6", layout_style: "grunge-gallery" })
+    const layout = parseSectionLayoutFromForm(formData, definition)
+    expect(layout.columnsDesktop).toBe(1)
+    expect(layout.layoutStyle).toBe("grunge-gallery")
+  })
 })
 
 // ─── flashPreview ────────────────────────────────────────────────────────────

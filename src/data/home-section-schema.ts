@@ -88,6 +88,8 @@ const galleryLayoutStyleOptions = [
   { label: "Grilla", value: "grid" },
   { label: "Grilla enmarcada", value: "framed-grid" },
   { label: "Grilla bento", value: "bento-grid" },
+  { label: "Grid ancho", value: "wide-grid" },
+  { label: "Grunge gallery", value: "grunge-gallery" },
 ]
 
 export const SECTION_DEFINITIONS: Record<EditableSiteSectionType, SectionDefinition> = {
@@ -480,6 +482,14 @@ export function parseSectionLayoutFromForm(formData: FormData, definition: Secti
 
   if (layout.layoutStyle === "bento-grid" || layout.layoutStyle === "carousel") {
     layout.columnsDesktop = 3
+  }
+
+  if (layout.layoutStyle === "wide-grid") {
+    layout.columnsDesktop = 4
+  }
+
+  if (layout.layoutStyle === "grunge-gallery") {
+    layout.columnsDesktop = 1
   }
 
   if (layout.layoutStyle === "framed-grid") {

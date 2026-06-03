@@ -47,7 +47,7 @@ export type FeaturedPortfolioSectionContent = {
 export type FeaturedPortfolioSectionLayout = {
   columnsDesktop: number
   variant: "carousel"
-  layoutStyle: "carousel" | "grid" | "framed-grid" | "bento-grid"
+  layoutStyle: "carousel" | "grid" | "framed-grid" | "bento-grid" | "wide-grid" | "grunge-gallery"
 }
 
 export type FeaturedPortfolioSectionStyle = {
@@ -69,7 +69,7 @@ export type FlashPreviewSectionContent = {
 export type FlashPreviewSectionLayout = {
   columnsDesktop: number
   columnsMobile: 2
-  layoutStyle: "carousel" | "grid" | "framed-grid" | "bento-grid"
+  layoutStyle: "carousel" | "grid" | "framed-grid" | "bento-grid" | "wide-grid" | "grunge-gallery"
 }
 
 export type FlashPreviewSectionStyle = {

@@ -13,6 +13,8 @@ import {
   BracketGridLayout,
   CarouselGalleryLayout,
   FramedGridLayout,
+  GrungeGalleryLayout,
+  WideGridLayout,
   type SharedGalleryItem,
   type SharedGalleryLayoutStyle,
 } from "./shared-gallery-layouts"
@@ -113,6 +115,8 @@ export function FeaturedTattoos({ tattoos, content, layout, style }: FeaturedTat
         {layoutStyle === "grid" && <BracketGridLayout items={items} action={action} columnsDesktop={columnsDesktop} />}
         {layoutStyle === "framed-grid" && <FramedGridLayout items={items} action={action} columnsDesktop={columnsDesktop} />}
         {layoutStyle === "bento-grid" && <BentoGridLayout items={items} action={action} />}
+        {layoutStyle === "wide-grid" && <WideGridLayout items={items} action={action} />}
+        {layoutStyle === "grunge-gallery" && <GrungeGalleryLayout items={items} action={action} eyebrow={content.eyebrow} />}
       </div>
 
       <TattooImageLightbox tattoo={selectedTattoo} onClose={() => setSelectedTattoo(null)} />

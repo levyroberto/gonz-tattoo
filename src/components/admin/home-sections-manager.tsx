@@ -245,7 +245,7 @@ function PreviewImageStrip({
     <div className="min-w-0 max-w-full overflow-hidden">
       <DndContext id="section-preview-images-sortable" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={visibleImages.map((image) => `preview-${image.id}`)} strategy={horizontalListSortingStrategy}>
-          <div className="flex w-full min-w-0 max-w-full touch-pan-x gap-1.5 overflow-x-auto pb-1">
+          <div className="flex w-full min-w-0 max-w-[25.875rem] touch-pan-x gap-1.5 overflow-x-auto pb-1">
             {visibleImages.map((image) => (
               <SortablePreviewImage key={image.id} image={image} />
             ))}
@@ -288,7 +288,7 @@ function SectionPreview({
     case "featuredPortfolio":
       return (
         <PreviewImageStrip
-          images={filterPortfolioItems(portfolioPreviewItems, section).map((item) => ({ alt: item.title, id: item.id, src: item.image }))}
+          images={filterPortfolioItems(portfolioPreviewItems, section, { applyLimit: false }).map((item) => ({ alt: item.title, id: item.id, src: item.image }))}
           itemOrder={section.content.itemOrder}
           onReorder={(itemIds) => onItemOrderChange?.(section.id, itemIds)}
         />
@@ -296,7 +296,7 @@ function SectionPreview({
     case "flashPreview":
       return (
         <PreviewImageStrip
-          images={filterFlashDesigns(flashPreviewItems, section).map((item) => ({ alt: item.name, id: item.id, src: item.image }))}
+          images={filterFlashDesigns(flashPreviewItems, section, { applyLimit: false }).map((item) => ({ alt: item.name, id: item.id, src: item.image }))}
           itemOrder={section.content.itemOrder}
           onReorder={(itemIds) => onItemOrderChange?.(section.id, itemIds)}
         />
@@ -869,7 +869,10 @@ function HomeSectionContentFields({
   const mainFields = definition.fields.filter((field) => {
     const layoutStyle = "layoutStyle" in section.layout ? section.layout.layoutStyle : ""
 
-    if (field.key === "columnsDesktop" && (layoutStyle === "bento-grid" || layoutStyle === "carousel")) {
+    if (
+      field.key === "columnsDesktop" &&
+      (layoutStyle === "bento-grid" || layoutStyle === "carousel" || layoutStyle === "wide-grid" || layoutStyle === "grunge-gallery")
+    ) {
       return false
     }
 

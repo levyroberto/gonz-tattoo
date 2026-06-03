@@ -8,7 +8,7 @@ import { type CSSProperties, type PointerEvent, type ReactNode, useCallback, use
 
 import { normalizeInternalLink } from "@/lib/internal-links"
 
-export type SharedGalleryLayoutStyle = "carousel" | "grid" | "framed-grid" | "bento-grid"
+export type SharedGalleryLayoutStyle = "carousel" | "grid" | "framed-grid" | "bento-grid" | "wide-grid" | "grunge-gallery"
 
 export type SharedGalleryItem = {
   id: number
@@ -32,6 +32,7 @@ type GalleryAction = {
 type SharedGalleryLayoutProps = {
   action?: GalleryAction
   columnsDesktop?: number
+  eyebrow?: string
   items: SharedGalleryItem[]
 }
 
@@ -274,6 +275,220 @@ function PrimaryOutlineAction({ action }: { action: GalleryAction }) {
         {action.label}
       </a>
     </motion.div>
+  )
+}
+
+type WideGridCellRatio = "tall" | "square"
+
+function getWideGridRatio(index: number): WideGridCellRatio {
+  const pattern: WideGridCellRatio[] = ["tall", "square", "tall", "square", "square", "tall", "square", "tall"]
+
+  return pattern[index % pattern.length]
+}
+
+function formatWideGridIndex(index: number) {
+  return String(index + 1).padStart(2, "0")
+}
+
+function WideGridCell({ index, item }: { index: number; item: SharedGalleryItem }) {
+  const ratio = getWideGridRatio(index)
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5, delay: Math.min(index * 0.04, 0.3) }}
+      className={`group relative cursor-pointer overflow-hidden bg-[#111] ${ratio === "tall" ? "aspect-[3/4]" : "aspect-square"}`}
+    >
+      <GalleryItemButton item={item} className="block size-full text-left">
+        <Image
+          src={item.image}
+          alt={item.title}
+          fill
+          sizes="(max-width: 640px) 50vw, 25vw"
+          className="object-cover brightness-[0.88] contrast-[1.08] saturate-[0.7] transition-all duration-[600ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] group-hover:scale-[1.06] group-hover:contrast-[1.1]"
+        />
+        <div className="absolute inset-0 flex flex-col justify-end px-3 pb-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <p className="text-[clamp(13px,2vw,18px)] font-medium leading-tight tracking-[0.04em] text-[#f0ece4]">
+            {item.title}
+          </p>
+          {item.subtitle && (
+            <p className="mt-1 text-[10px] uppercase tracking-[0.28em] text-[#888]">
+              {item.subtitle}
+            </p>
+          )}
+        </div>
+        <span className="absolute right-3 top-2.5 text-[10px] tracking-[0.15em] text-[#444] opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          {formatWideGridIndex(index)}
+        </span>
+        <span className="absolute bottom-0 left-0 h-[2px] w-0 bg-[#c8a97e] transition-[width] duration-[450ms] ease-out group-hover:w-full" />
+      </GalleryItemButton>
+    </motion.div>
+  )
+}
+
+export function WideGridLayout({ action, items }: SharedGalleryLayoutProps) {
+  return (
+    <div className="relative left-1/2 w-screen -translate-x-1/2 bg-[#0a0a0a]">
+      <div className="flex items-baseline justify-between border-b border-[#222] px-6 py-8">
+        <span className="text-[11px] uppercase tracking-[0.35em] text-[#555]">
+          Estudio - obras
+        </span>
+        <span className="text-[11px] tracking-[0.2em] text-[#333]">
+          {items.length} piezas
+        </span>
+      </div>
+
+      <div className="grid w-full grid-cols-2 gap-[2px] md:grid-cols-4">
+        {items.map((item, index) => (
+          <WideGridCell key={item.id} item={item} index={index} />
+        ))}
+      </div>
+
+      <div className="border-t border-[#1a1a1a] py-6 text-center">
+        {action ? (
+          <a href={normalizeInternalLink(action.href)} className="text-[10px] uppercase tracking-[0.3em] text-[#555] transition-colors hover:text-primary">
+            {action.label}
+          </a>
+        ) : (
+          <span className="text-[10px] uppercase tracking-[0.3em] text-[#2a2a2a]">
+            Buenos Aires
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const grungeRotations = [
+  "-rotate-[1.1deg]",
+  "rotate-[0.7deg]",
+  "-rotate-[0.5deg]",
+  "rotate-[1.4deg]",
+  "rotate-[0.1deg]",
+  "-rotate-[1.8deg]",
+  "rotate-[0.9deg]",
+  "-rotate-[0.3deg]",
+]
+
+const grungeAspects = ["55%", "62%", "50%", "58%", "53%", "60%", "48%", "56%"]
+
+function getGrungeRotation(index: number) {
+  return grungeRotations[index % grungeRotations.length]
+}
+
+function getGrungeAspect(index: number) {
+  return grungeAspects[index % grungeAspects.length]
+}
+
+function getGrungeStickerTone(item: SharedGalleryItem) {
+  return item.badgeTone === "secondary" || item.badgeTone === "muted" ? "cream" : "red"
+}
+
+function GrungeTape({ side }: { side: "left" | "right" }) {
+  const position = side === "left" ? "left-[18%] top-[-8px] -rotate-2" : "right-[22%] top-[-6px] rotate-[1.5deg]"
+
+  return <span className={`pointer-events-none absolute h-[18px] w-14 bg-[#c8b89a] opacity-55 ${position}`} />
+}
+
+function GrungeSticker({ item }: { item: SharedGalleryItem }) {
+  if (!item.badge) {
+    return null
+  }
+
+  const tone = getGrungeStickerTone(item)
+  const colorClassName = tone === "red"
+    ? "border-[#8a1818] bg-[#b02020] text-[#e8dcc8]"
+    : "rotate-2 border-[#a09070] bg-[#c8b89a] text-[#0d0c0a]"
+
+  return (
+    <span className={`pointer-events-none absolute left-3 top-3 border-[1.5px] px-[7px] py-[3px] font-sans text-[10px] font-black uppercase tracking-[0.2em] -rotate-3 ${colorClassName}`}>
+      {item.badge}
+    </span>
+  )
+}
+
+function GrungePosterCard({ index, item }: { index: number; item: SharedGalleryItem }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.45, delay: Math.min(index * 0.06, 0.35) }}
+      className={`relative mb-5 w-full cursor-pointer ${getGrungeRotation(index)}`}
+    >
+      <GalleryItemButton item={item} className="group block w-full text-left">
+        <div className="relative overflow-hidden border-[3px] border-[#1a1814] transition-transform duration-200 ease-out group-hover:scale-[1.015]">
+          <div className="relative w-full" style={{ paddingTop: getGrungeAspect(index) }}>
+            <Image
+              src={item.image}
+              alt={item.title}
+              fill
+              sizes="(max-width: 640px) 100vw, 680px"
+              className="object-cover sepia-[0.35] contrast-[1.2] saturate-[0.6] transition-all duration-300 group-hover:sepia-[0.2] group-hover:saturate-[0.8]"
+            />
+
+            <div className="absolute inset-0 flex flex-col justify-end">
+              <span className="pointer-events-none absolute right-3.5 top-2.5 select-none font-sans text-[clamp(48px,10vw,72px)] leading-none text-white opacity-[0.07]">
+                {formatWideGridIndex(index)}
+              </span>
+              <GrungeSticker item={item} />
+              <GrungeTape side="left" />
+              <GrungeTape side="right" />
+              <div className="flex items-baseline justify-between gap-2 border-t-2 border-[#b02020] bg-[rgba(10,9,7,0.88)] px-3.5 py-2.5">
+                <span className="font-sans text-[clamp(20px,5vw,32px)] leading-none tracking-[0.06em] text-[#e8dcc8]">
+                  {item.title}
+                </span>
+                {item.subtitle && (
+                  <span className="whitespace-nowrap font-sans text-[11px] font-bold uppercase tracking-[0.3em] text-[#b02020]">
+                    {item.subtitle}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </GalleryItemButton>
+    </motion.div>
+  )
+}
+
+export function GrungeGalleryLayout({ action, eyebrow, items }: SharedGalleryLayoutProps) {
+  return (
+    <div className="relative left-1/2 w-screen -translate-x-1/2 bg-[#0d0c0a]">
+      <div className="flex items-center justify-between border-b-2 border-[#1e1e1e] px-5 py-6">
+        {eyebrow && (
+          <span className="font-sans text-[clamp(18px,4vw,24px)] tracking-[0.12em] text-[#c8b89a]">
+            {eyebrow}
+          </span>
+        )}
+        <span className="font-sans text-[11px] font-bold uppercase tracking-[0.4em] text-[#3a3630]">
+          Buenos Aires
+        </span>
+      </div>
+
+      <div className="mx-auto flex max-w-[760px] flex-col px-4 pt-8">
+        {items.map((item, index) => (
+          <GrungePosterCard key={item.id} item={item} index={index} />
+        ))}
+      </div>
+
+      <div className="mt-8 flex justify-between border-t border-[#1a1814] px-5 py-4">
+        {action ? (
+          <a href={normalizeInternalLink(action.href)} className="font-sans text-[11px] font-bold uppercase tracking-[0.35em] text-[#c8b89a] transition-colors hover:text-primary">
+            {action.label}
+          </a>
+        ) : (
+          <span className="font-sans text-[11px] font-bold uppercase tracking-[0.35em] text-[#2a2720]">
+            Walk-ins welcome
+          </span>
+        )}
+        <span className="font-sans text-[11px] font-bold uppercase tracking-[0.35em] text-[#2a2720]">
+          No regrets
+        </span>
+      </div>
+    </div>
   )
 }
 

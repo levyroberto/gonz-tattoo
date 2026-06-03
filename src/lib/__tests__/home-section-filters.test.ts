@@ -136,6 +136,12 @@ describe("filterPortfolioItems", () => {
     expect(result).toHaveLength(2)
   })
 
+  it("puede omitir el límite para previews del admin", () => {
+    const items = [1, 2, 3, 4, 5].map((id) => makeTattoo({ id }))
+    const result = filterPortfolioItems(items, makePortfolioSection({ limit: 2 }), { applyLimit: false })
+    expect(result).toHaveLength(5)
+  })
+
   it("filtra por featuredOnly", () => {
     const items = [
       makeTattoo({ id: 1, isFeatured: true }),
@@ -246,6 +252,12 @@ describe("filterFlashDesigns", () => {
     const items = [1, 2, 3, 4].map((id) => makeFlash({ id }))
     const result = filterFlashDesigns(items, makeFlashSection({ limit: 2 }))
     expect(result).toHaveLength(2)
+  })
+
+  it("puede omitir el límite para previews del admin", () => {
+    const items = [1, 2, 3, 4].map((id) => makeFlash({ id }))
+    const result = filterFlashDesigns(items, makeFlashSection({ limit: 2 }), { applyLimit: false })
+    expect(result).toHaveLength(4)
   })
 
   it("filtra por estilo (case-insensitive)", () => {
