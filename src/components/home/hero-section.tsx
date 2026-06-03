@@ -95,15 +95,14 @@ export function HeroSection({ content, layout, style }: HeroSectionProps) {
             {/* Capa metal: siempre al fondo, detrás de todo el texto del hero */}
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 -z-10 flex select-none items-center justify-center"
+              className="pointer-events-none absolute inset-0 -z-10 flex select-none items-center justify-center text-7xl md:text-9xl lg:text-[12rem]"
               style={{
                 fontFamily: "var(--font-metal)",
-                fontSize: "clamp(4rem, 6vw, 7rem)",
                 lineHeight: 1,
                 letterSpacing: "0.02em",
                 color: "oklch(0.19 0.20 19)",
                 whiteSpace: "nowrap",
-                transform: "scale(1.12) scaleX(0.6)",
+                transform: "scaleX(0.40) scaleY(0.70)",
               }}
             >
               {[content.brandPrimary, content.brandAccent].filter(Boolean).join(" ")}
