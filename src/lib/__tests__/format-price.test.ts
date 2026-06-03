@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { formatPrice } from "@/lib/format-price"
+import { formatPrice } from "../../lib/format-price"
 
 describe("formatPrice", () => {
   it("formatea precios enteros con separador de miles argentino", () => {

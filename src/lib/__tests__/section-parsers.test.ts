@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { getSectionDefinition, parseSectionContentFromForm } from "@/data/home-section-schema"
+import { getSectionDefinition, parseSectionContentFromForm } from "../../data/home-section-schema"
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

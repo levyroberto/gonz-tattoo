@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
 
-import { filterFlashDesigns, filterPortfolioItems, matchesTags } from "@/lib/home-section-filters"
-import type { FlashDesign } from "@/data/flash-designs"
-import type { Tattoo } from "@/data/tattoos"
+import { filterFlashDesigns, filterPortfolioItems, matchesTags } from "../../lib/home-section-filters"
+import type { FlashDesign } from "../../data/flash-designs"
+import type { Tattoo } from "../../data/tattoos"
 
 // ─── Helpers de fixtures ────────────────────────────────────────────────────
 
