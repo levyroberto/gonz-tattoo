@@ -1,12 +1,12 @@
 "use client"
 
 import { motion } from "framer-motion"
-import Link from "next/link"
 import Image from "next/image"
 import { useEffect, useState } from "react"
 
 import type { HeroSectionContent, HeroSectionLayout, HeroSectionStyle } from "@/data/home-sections"
 import { normalizeInternalLink } from "@/lib/internal-links"
+import { PrimaryButton, GoldButton } from "@/components/ui/buttons"
 
 const HERO_VISIT_COUNT_KEY = "gonz-hero-visit-count"
 
@@ -41,6 +41,16 @@ export function HeroSection({ content, layout, style }: HeroSectionProps) {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden grunge-texture">
+      {/* SVG filter: rough edges para la capa metal */}
+      <svg style={{ position: "absolute", width: 0, height: 0 }} aria-hidden="true">
+        <defs>
+          <filter id="metal-rough" x="-5%" y="-5%" width="110%" height="110%">
+            <feTurbulence type="turbulence" baseFrequency="0.055" numOctaves="3" seed="5" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </defs>
+      </svg>
+
       {style.backgroundImage && (
         <Image
           src={style.backgroundImage}
@@ -63,10 +73,12 @@ export function HeroSection({ content, layout, style }: HeroSectionProps) {
         <div className="absolute bottom-0 right-0 w-32 h-32 border-r-4 border-b-4 border-primary/30" />
       </div>
 
+
       <div className="relative z-10 container mx-auto px-4 text-center">
         <div className="absolute left-1/2 top-1/2 -z-10 h-[30rem] w-[min(34rem,calc(100vw-1.5rem))] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(ellipse_at_center,oklch(0.03_0.01_0/0.95)_0%,oklch(0.04_0.01_0/0.82)_42%,transparent_72%)] md:hidden" />
+
         {content.eyebrow && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="relative z-10 mb-6">
             <span className="inline-block px-4 py-1 text-sm tracking-[0.3em] text-secondary border border-secondary/50 uppercase font-serif">
               {content.eyebrow}
             </span>
@@ -74,34 +86,77 @@ export function HeroSection({ content, layout, style }: HeroSectionProps) {
         )}
 
         {(content.brandPrimary || content.brandAccent) && (
-          <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="text-7xl md:text-9xl lg:text-[12rem] font-sans tracking-wider leading-none mb-4 fire-glow">
-            <span className="text-foreground">{content.brandPrimary}</span>
-            <span className="text-primary">{content.brandAccent}</span>
-          </motion.h1>
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="relative isolate z-0 inline-block mb-4"
+          >
+            {/* Capa metal: siempre al fondo, detrás de todo el texto del hero */}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 -z-10 flex select-none items-center justify-center"
+              style={{
+                fontFamily: "var(--font-metal)",
+                fontSize: "clamp(4rem, 6vw, 7rem)",
+                lineHeight: 1,
+                letterSpacing: "0.02em",
+                color: "oklch(0.19 0.20 19)",
+                whiteSpace: "nowrap",
+                transform: "scale(1.12) scaleX(0.6)",
+              }}
+            >
+              {[content.brandPrimary, content.brandAccent].filter(Boolean).join(" ")}
+            </span>
+
+            {/* Título principal: Bebas Neue encima */}
+            <h1 className="relative z-10 text-7xl md:text-9xl lg:text-[12rem] font-sans tracking-wider leading-none fire-glow">
+              <span className="text-foreground">{content.brandPrimary}</span>
+              <span className="text-primary">{content.brandAccent}</span>
+            </h1>
+          </motion.div>
+        )}
+
+        {/* Ornamento de banda */}
+        {(content.brandPrimary || content.brandAccent) && (
+          <motion.div
+            initial={{ opacity: 0, scaleX: 0.5 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            transition={{ duration: 0.7, delay: 0.45, ease: "easeOut" }}
+            className="relative z-10 flex items-center justify-center gap-2 mb-6"
+            aria-hidden="true"
+          >
+            <span className="h-px w-16 md:w-24 bg-primary/50" />
+            <span className="size-1.5 rotate-45 bg-primary/70" />
+            <span className="h-px w-6 bg-primary/40" />
+            <span className="size-2.5 rotate-45 border border-primary/60" />
+            <span className="h-px w-6 bg-primary/40" />
+            <span className="size-1.5 rotate-45 bg-primary/70" />
+            <span className="h-px w-16 md:w-24 bg-primary/50" />
+          </motion.div>
         )}
 
         {content.description && (
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }} className="text-xl md:text-2xl text-muted-foreground font-serif italic max-w-2xl mx-auto mb-12">
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.55 }} className="relative z-10 text-xl md:text-2xl text-muted-foreground font-serif italic max-w-2xl mx-auto mb-12">
             {content.description}
           </motion.p>
         )}
 
         {(hasPrimaryButton || hasSecondaryButton) && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }} className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.7 }} className="relative z-10 flex flex-col sm:flex-row gap-4 justify-center items-center">
             {hasPrimaryButton && (
-              <Link href={normalizeInternalLink(content.primaryButtonHref)} className="group relative px-8 py-4 bg-primary text-primary-foreground font-sans text-xl tracking-widest uppercase overflow-hidden transition-all duration-300 hover:shadow-[0_0_20px_oklch(0.55_0.16_50/0.4),0_0_40px_oklch(0.45_0.18_25/0.2)]">
-                <span className="relative z-10">{content.primaryButtonLabel}</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-accent/30 to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </Link>
+              <PrimaryButton href={normalizeInternalLink(content.primaryButtonHref)} size="lg">
+                {content.primaryButtonLabel}
+              </PrimaryButton>
             )}
             {hasSecondaryButton && (
-              <a href={normalizeInternalLink(content.secondaryButtonHref)} className="px-8 py-4 border-2 border-secondary text-secondary font-sans text-xl tracking-widest uppercase transition-all duration-300 hover:bg-secondary hover:text-secondary-foreground hover:shadow-[0_0_15px_oklch(0.55_0.12_85/0.3)]">
+              <GoldButton href={normalizeInternalLink(content.secondaryButtonHref)} size="lg">
                 {content.secondaryButtonLabel}
-              </a>
+              </GoldButton>
             )}
           </motion.div>
         )}
-        
+
       </div>
     </section>
   )

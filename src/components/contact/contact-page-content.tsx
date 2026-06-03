@@ -5,6 +5,7 @@ import Image from "next/image"
 
 import type { ContactPageSectionContent, ContactPageSectionLayout, ContactPageSectionStyle } from "@/data/page-sections"
 import type { SiteSettings } from "@/lib/supabase/content"
+import { InstagramButton, WhatsAppButton } from "@/components/ui/buttons"
 
 type ContactPageContentProps = {
   content: ContactPageSectionContent
@@ -18,6 +19,11 @@ const sectionBackgroundClassNames: Record<ContactPageSectionStyle["background"],
 }
 
 export function ContactPageContent({ content, layout, settings, style }: ContactPageContentProps) {
+  const whatsappUrl = settings.whatsappUrl?.trim() || undefined
+  const instagramUrl = settings.instagramUrl?.trim() || undefined
+  const hasWhatsapp = Boolean(whatsappUrl && content.whatsappLabel)
+  const hasInstagram = Boolean(instagramUrl && content.instagramLabel)
+
   return (
     <section className={`relative ${sectionBackgroundClassNames[style.background]} grunge-texture py-20 md:py-24`} data-layout={layout.layoutStyle}>
       <div className="container mx-auto px-4">
@@ -76,15 +82,15 @@ export function ContactPageContent({ content, layout, settings, style }: Contact
                 {content.cardDescription}
               </p>
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-                {settings.whatsappUrl && (
-                  <a href={settings.whatsappUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-center bg-primary px-8 py-4 text-primary-foreground font-sans text-lg tracking-widest uppercase transition-all duration-300 hover:shadow-[0_0_20px_oklch(0.55_0.16_50/0.4),0_0_40px_oklch(0.45_0.18_25/0.2)]">
+                {hasWhatsapp && whatsappUrl && (
+                  <WhatsAppButton href={whatsappUrl} className="w-full sm:w-auto">
                     {content.whatsappLabel}
-                  </a>
+                  </WhatsAppButton>
                 )}
-                {settings.instagramUrl && (
-                  <a href={settings.instagramUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-center border-2 border-secondary px-8 py-4 text-secondary font-sans text-lg tracking-widest uppercase transition-all duration-300 hover:bg-secondary hover:text-secondary-foreground hover:shadow-[0_0_15px_oklch(0.55_0.12_85/0.3)]">
+                {hasInstagram && instagramUrl && (
+                  <InstagramButton href={instagramUrl} className="w-full sm:w-auto">
                     {content.instagramLabel}
-                  </a>
+                  </InstagramButton>
                 )}
               </div>
             </motion.article>

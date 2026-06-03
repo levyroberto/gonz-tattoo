@@ -1,16 +1,23 @@
 import type { Metadata } from 'next'
 import { Bebas_Neue, Playfair_Display } from 'next/font/google'
+import localFont from 'next/font/local'
 import './globals.css'
 
-const bebasNeue = Bebas_Neue({ 
+const bebasNeue = Bebas_Neue({
   weight: '400',
   subsets: ["latin"],
   variable: '--font-bebas'
 });
 
-const playfairDisplay = Playfair_Display({ 
+const playfairDisplay = Playfair_Display({
   subsets: ["latin"],
   variable: '--font-playfair'
+});
+
+const cronicleDemo = localFont({
+  src: '../../public/fonts/CronicleDemo.ttf',
+  variable: '--font-metal',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -42,7 +49,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className={`${bebasNeue.variable} ${playfairDisplay.variable} bg-background`}>
+    <html lang="es" className={`${bebasNeue.variable} ${playfairDisplay.variable} ${cronicleDemo.variable} bg-background`}>
       <body className="font-sans antialiased">
         {children}
       </body>

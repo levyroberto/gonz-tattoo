@@ -7,6 +7,7 @@ import Link from "next/link"
 import { type CSSProperties, type PointerEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 
 import { normalizeInternalLink } from "@/lib/internal-links"
+import { OutlineButton } from "@/components/ui/buttons"
 
 export type SharedGalleryLayoutStyle = "carousel" | "grid" | "framed-grid" | "bento-grid" | "wide-grid" | "grunge-gallery"
 
@@ -268,12 +269,20 @@ export function CarouselGalleryLayout({ action, items }: SharedGalleryLayoutProp
   )
 }
 
-function PrimaryOutlineAction({ action }: { action: GalleryAction }) {
+function PrimaryOutlineAction({ action, className }: { action: GalleryAction; className?: string }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.4 }} className="text-center mt-12">
-      <a href={normalizeInternalLink(action.href)} className="inline-block px-8 py-4 border-2 border-primary text-primary font-sans text-lg tracking-widest uppercase transition-all duration-300 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_20px_oklch(0.45_0.18_25/0.4)]">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6, delay: 0.4 }}
+      className={`mt-10 flex items-center justify-center gap-6 ${className ?? ""}`}
+    >
+      <span className="hidden h-px w-16 bg-border md:block" aria-hidden="true" />
+      <OutlineButton href={normalizeInternalLink(action.href)} size="md">
         {action.label}
-      </a>
+      </OutlineButton>
+      <span className="hidden h-px w-16 bg-border md:block" aria-hidden="true" />
     </motion.div>
   )
 }
@@ -346,17 +355,7 @@ export function WideGridLayout({ action, items }: SharedGalleryLayoutProps) {
         ))}
       </div>
 
-      <div className="border-t border-[#1a1a1a] py-6 text-center">
-        {action ? (
-          <a href={normalizeInternalLink(action.href)} className="text-[10px] uppercase tracking-[0.3em] text-[#555] transition-colors hover:text-primary">
-            {action.label}
-          </a>
-        ) : (
-          <span className="text-[10px] uppercase tracking-[0.3em] text-[#2a2a2a]">
-            Buenos Aires
-          </span>
-        )}
-      </div>
+      {action && <PrimaryOutlineAction action={action} className="py-6 border-t border-[#1a1a1a]" />}
     </div>
   )
 }
@@ -474,20 +473,7 @@ export function GrungeGalleryLayout({ action, eyebrow, items }: SharedGalleryLay
         ))}
       </div>
 
-      <div className="mt-8 flex justify-between border-t border-[#1a1814] px-5 py-4">
-        {action ? (
-          <a href={normalizeInternalLink(action.href)} className="font-sans text-[11px] font-bold uppercase tracking-[0.35em] text-[#c8b89a] transition-colors hover:text-primary">
-            {action.label}
-          </a>
-        ) : (
-          <span className="font-sans text-[11px] font-bold uppercase tracking-[0.35em] text-[#2a2720]">
-            Walk-ins welcome
-          </span>
-        )}
-        <span className="font-sans text-[11px] font-bold uppercase tracking-[0.35em] text-[#2a2720]">
-          No regrets
-        </span>
-      </div>
+      {action && <PrimaryOutlineAction action={action} className="border-t border-[#1a1814]" />}
     </div>
   )
 }
@@ -548,15 +534,7 @@ export function BracketGridLayout({ action, columnsDesktop, items }: SharedGalle
         ))}
       </div>
 
-      {action && (
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.25 }} className="mt-9 flex items-center justify-center gap-6 text-center">
-          <span className="hidden h-px w-16 bg-border md:block" aria-hidden="true" />
-          <a href={normalizeInternalLink(action.href)} className="relative border border-border px-8 py-3 font-sans text-sm font-semibold uppercase tracking-[0.28em] text-foreground transition-colors before:absolute before:-bottom-1 before:-right-1 before:left-1 before:top-1 before:border before:border-primary before:opacity-0 before:transition-opacity hover:border-primary hover:text-primary hover:before:opacity-100">
-            {action.label}
-          </a>
-          <span className="hidden h-px w-16 bg-border md:block" aria-hidden="true" />
-        </motion.div>
-      )}
+      {action && <PrimaryOutlineAction action={action} />}
     </>
   )
 }
@@ -609,13 +587,7 @@ export function FramedGridLayout({ action, columnsDesktop, items }: SharedGaller
         </div>
       </div>
 
-      {action && (
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.4 }} className="text-center mt-12">
-          <a href={normalizeInternalLink(action.href)} className="inline-block px-8 py-4 bg-secondary text-secondary-foreground font-sans text-lg tracking-widest uppercase transition-all duration-300 hover:bg-secondary/90 hover:shadow-[0_0_15px_oklch(0.55_0.12_85/0.3)]">
-            {action.label}
-          </a>
-        </motion.div>
-      )}
+      {action && <PrimaryOutlineAction action={action} />}
     </>
   )
 }
@@ -676,16 +648,7 @@ export function BentoGridLayout({ action, items }: SharedGalleryLayoutProps) {
         ))}
       </div>
 
-      {action && (
-        <div className="mx-auto mt-6 flex max-w-[920px] flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-          <span className="text-xs uppercase tracking-[0.15em] text-muted-foreground/45">
-            Estudio - piezas disponibles
-          </span>
-          <a href={normalizeInternalLink(action.href)} className="relative inline-block border border-border px-8 py-3 font-sans text-xs font-bold uppercase tracking-[0.28em] text-foreground transition-colors before:absolute before:-bottom-1 before:-right-1 before:left-1 before:top-1 before:border before:border-primary before:opacity-0 before:transition-opacity hover:border-primary hover:text-primary hover:before:opacity-100">
-            {action.label}
-          </a>
-        </div>
-      )}
+      {action && <PrimaryOutlineAction action={action} />}
     </>
   )
 }

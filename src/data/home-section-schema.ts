@@ -20,7 +20,7 @@ export type SectionFieldType =
 export type SectionFieldWidth = "full" | "half" | "third"
 
 /** Variante visual para previsualizar un input de etiqueta como el botón real del sitio. */
-export type ButtonPreviewVariant = "primaryFilled" | "primaryOutline" | "secondaryFilled" | "secondaryOutline" | "doubleBorder"
+export type ButtonPreviewVariant = "primaryFilled" | "primaryOutline" | "secondaryOutline" | "whatsapp" | "instagram"
 
 export type SectionFieldDefinition = {
   /** Clave dentro de `content` (o `style` cuando target = "style"). */
@@ -204,7 +204,7 @@ export const SECTION_DEFINITIONS: Record<EditableSiteSectionType, SectionDefinit
       { key: "layoutStyle", formName: "layout_style", label: "Layout style", type: "select", target: "layout", width: "half", options: galleryLayoutStyleOptions },
       { key: "columnsDesktop", formName: "columns_desktop", label: "Columnas a mostrar", type: "number", target: "layout", numberFallback: 3, min: 2, max: 8, width: "half" },
       { key: "description", formName: "description", label: "Descripción", type: "textarea", required: true, width: "full" },
-      { key: "buttonLabel", formName: "button_label", label: "Botón", type: "text", required: true, width: "half", buttonPreview: "secondaryFilled" },
+      { key: "buttonLabel", formName: "button_label", label: "Botón", type: "text", required: true, width: "half", buttonPreview: "primaryOutline" },
       { key: "buttonHref", formName: "button_href", label: "Link del botón", type: "internalLink", required: true, width: "half" },
       { key: "filterTags", formName: "filter_tags", label: "Filtrar por: Tags", type: "text", required: false, width: "half", inFilterBox: true },
       { key: "filterStyle", formName: "filter_style", label: "Filtrar por: Estilo", type: "styleFilter", styleOptions: "flash", width: "half", inFilterBox: true },
@@ -276,8 +276,8 @@ export const SECTION_DEFINITIONS: Record<EditableSiteSectionType, SectionDefinit
       { key: "eyebrow", formName: "eyebrow", label: "Eyebrow", type: "text", required: true, width: "full" },
       { key: "layoutStyle", formName: "layout_style", label: "Layout style", type: "select", target: "layout", width: "half", options: [{ label: "Centrado", value: "centered" }] },
       { key: "description", formName: "description", label: "Descripción", type: "textarea", required: true, width: "full" },
-      { key: "whatsappLabel", formName: "whatsapp_label", label: "Botón 1", type: "text", required: true, width: "third", buttonPreview: "primaryFilled" },
-      { key: "instagramLabel", formName: "instagram_label", label: "Botón 2", type: "text", required: true, width: "third", buttonPreview: "secondaryOutline" },
+      { key: "whatsappLabel", formName: "whatsapp_label", label: "Botón 1", type: "text", required: true, width: "third", buttonPreview: "whatsapp" },
+      { key: "instagramLabel", formName: "instagram_label", label: "Botón 2", type: "text", required: true, width: "third", buttonPreview: "instagram" },
       { key: "hoursLabel", formName: "hours_label", label: "Label horario", type: "text", required: true, width: "third" },
     ],
     defaults: {
@@ -389,8 +389,8 @@ export const SECTION_DEFINITIONS: Record<EditableSiteSectionType, SectionDefinit
       { key: "description", formName: "description", label: "Descripcion", type: "textarea", required: true, width: "full" },
       { key: "cardEyebrow", formName: "card_eyebrow", label: "Eyebrow tarjeta", type: "text", required: true, width: "half" },
       { key: "cardDescription", formName: "card_description", label: "Descripcion tarjeta", type: "textarea", required: true, width: "full" },
-      { key: "whatsappLabel", formName: "whatsapp_label", label: "Boton WhatsApp", type: "text", required: true, width: "half", buttonPreview: "primaryFilled" },
-      { key: "instagramLabel", formName: "instagram_label", label: "Boton Instagram", type: "text", required: true, width: "half", buttonPreview: "secondaryOutline" },
+      { key: "whatsappLabel", formName: "whatsapp_label", label: "Boton WhatsApp", type: "text", required: true, width: "half", buttonPreview: "whatsapp" },
+      { key: "instagramLabel", formName: "instagram_label", label: "Boton Instagram", type: "text", required: true, width: "half", buttonPreview: "instagram" },
       { key: "yearsLabel", formName: "years_label", label: "Label de foto", type: "text", required: true, width: "half" },
     ],
     defaults: pageSections.contact,
