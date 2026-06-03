@@ -39,9 +39,7 @@ import { Button } from "@/components/ui/button"
 import type { FlashDesign } from "@/data/flash-designs"
 import type { Tattoo } from "@/data/tattoos"
 import { DeleteButton } from "./delete-button"
-const fieldClass = "h-9 rounded-md border border-border bg-input px-3 text-foreground outline-none focus:border-primary"
-const tallFieldClass = "min-h-20 rounded-md border border-border bg-input px-3 py-2 text-foreground outline-none focus:border-primary"
-const errorIndentClass = "sm:pl-[152px]"
+import { errorIndentClass, fieldClass, tallFieldClass } from "@/components/admin/admin-field-styles"
 
 const portfolioRequiredFields: RequiredFieldRule[] = [
   { name: "title", message: "El título es obligatorio." },
@@ -66,13 +64,6 @@ function matchesStatusFilter(isActive: boolean | undefined, filter: AdminStatusF
 
   return true
 }
-
-// function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
-//   const nextItems = [...items]
-//   const [movedItem] = nextItems.splice(fromIndex, 1)
-//   nextItems.splice(toIndex, 0, movedItem)
-//   return nextItems
-// }
 
 function getSortableItemId(itemId: number) {
   return `item-${itemId}`
@@ -161,51 +152,6 @@ function TagBadges({ tags }: { tags?: string[] }) {
     </div>
   )
 }
-
-// function MobileMoveButtons({
-//   canMoveDown,
-//   canMoveUp,
-//   itemName,
-//   onMoveDown,
-//   onMoveUp,
-// }: {
-//   canMoveDown: boolean
-//   canMoveUp: boolean
-//   itemName: string
-//   onMoveDown: () => void
-//   onMoveUp: () => void
-// }) {
-//   return (
-//     <div className="grid shrink-0 grid-cols-2 gap-1 md:hidden">
-//       <button
-//         type="button"
-//         aria-label={`Subir ${itemName}`}
-//         className="flex size-8 cursor-pointer items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
-//         disabled={!canMoveUp}
-//         onClick={(event) => {
-//           event.preventDefault()
-//           event.stopPropagation()
-//           onMoveUp()
-//         }}
-//       >
-//         <MoveUp className="size-4" aria-hidden="true" />
-//       </button>
-//       <button
-//         type="button"
-//         aria-label={`Bajar ${itemName}`}
-//         className="flex size-8 cursor-pointer items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
-//         disabled={!canMoveDown}
-//         onClick={(event) => {
-//           event.preventDefault()
-//           event.stopPropagation()
-//           onMoveDown()
-//         }}
-//       >
-//         <MoveDown className="size-4" aria-hidden="true" />
-//       </button>
-//     </div>
-//   )
-// }
 
 type SortablePortfolioListProps = {
   items: Tattoo[]
@@ -306,21 +252,6 @@ export function SortablePortfolioList({
     persistOrder(nextItems)
   }
 
-  // function moveItemByStep(itemId: number, direction: -1 | 1) {
-  //   const fromIndex = orderedItems.findIndex((item) => item.id === itemId)
-  //   const toIndex = fromIndex + direction
-  //
-  //   if (fromIndex < 0 || toIndex < 0 || toIndex >= orderedItems.length) {
-  //     return
-  //   }
-  //
-  //   const nextItems = moveItem(orderedItems, fromIndex, toIndex)
-  //
-  //   setOpenItemId(null)
-  //   setOrderedItems(nextItems)
-  //   persistOrder(nextItems)
-  // }
-
   const visibleItems = orderedItems
     .map((item, index) => ({ item, index }))
     .filter(({ item }) => matchesStatusFilter(item.isActive, statusFilter))
@@ -363,13 +294,6 @@ export function SortablePortfolioList({
                 >
                   <GripVertical className="size-4" aria-hidden="true" />
                 </button>
-                {/* <MobileMoveButtons
-                  canMoveDown={index < orderedItems.length - 1}
-                  canMoveUp={index > 0}
-                  itemName={item.title}
-                  onMoveDown={() => moveItemByStep(item.id, 1)}
-                  onMoveUp={() => moveItemByStep(item.id, -1)}
-                /> */}
                 <AdminItemThumbnail src={item.image} alt={item.title} />
                 <button
                   type="button"
@@ -559,21 +483,6 @@ export function SortableFlashList({
     persistOrder(nextItems)
   }
 
-  // function moveItemByStep(itemId: number, direction: -1 | 1) {
-  //   const fromIndex = orderedItems.findIndex((item) => item.id === itemId)
-  //   const toIndex = fromIndex + direction
-  //
-  //   if (fromIndex < 0 || toIndex < 0 || toIndex >= orderedItems.length) {
-  //     return
-  //   }
-  //
-  //   const nextItems = moveItem(orderedItems, fromIndex, toIndex)
-  //
-  //   setOpenItemId(null)
-  //   setOrderedItems(nextItems)
-  //   persistOrder(nextItems)
-  // }
-
   const visibleItems = orderedItems
     .map((item, index) => ({ item, index }))
     .filter(({ item }) => matchesStatusFilter(item.isActive, statusFilter))
@@ -616,13 +525,6 @@ export function SortableFlashList({
                 >
                   <GripVertical className="size-4" aria-hidden="true" />
                 </button>
-                {/* <MobileMoveButtons
-                  canMoveDown={index < orderedItems.length - 1}
-                  canMoveUp={index > 0}
-                  itemName={item.name}
-                  onMoveDown={() => moveItemByStep(item.id, 1)}
-                  onMoveUp={() => moveItemByStep(item.id, -1)}
-                /> */}
                 <AdminItemThumbnail src={item.image} alt={item.name} />
                 <button
                   type="button"

@@ -4,7 +4,7 @@ import { motion } from "framer-motion"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useState } from "react"
 
-import { TattooImageLightbox } from "@/components/tattoo-image-lightbox"
+import { TattooImageLightbox } from "@/components/ui/tattoo-image-lightbox"
 import type { FlashDesign } from "@/data/flash-designs"
 import type { FlashPageSectionContent, FlashPageSectionLayout, FlashPageSectionStyle } from "@/data/page-sections"
 import { useLightboxOpenGuard } from "@/hooks/use-lightbox-open-guard"

@@ -16,10 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import type { FlashDesign } from "@/data/flash-designs"
 import type { Tattoo } from "@/data/tattoos"
 import type { TattooStyleOption } from "@/lib/supabase/content"
-
-const fieldClass = "h-9 rounded-md border border-border bg-input px-3 text-foreground outline-none focus:border-primary"
-const tallFieldClass = "min-h-20 rounded-md border border-border bg-input px-3 py-2 text-foreground outline-none focus:border-primary"
-const errorIndentClass = "sm:pl-[152px]"
+import { errorIndentClass, fieldClass, tallFieldClass } from "@/components/admin/admin-field-styles"
 
 const tattooRequiredFields: RequiredFieldRule[] = [
   { name: "title", message: "El título es obligatorio." },

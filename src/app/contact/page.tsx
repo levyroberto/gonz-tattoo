@@ -1,9 +1,16 @@
+import type { Metadata } from "next"
+
 import { ContactPageContent } from "@/components/contact/contact-page-content"
-import { SiteFooter } from "@/components/home/site-footer"
-import { SiteHeader } from "@/components/home/site-header"
+import { SiteFooter } from "@/components/layout/site-footer"
+import { SiteHeader } from "@/components/layout/site-header"
 import { getGlobalFooterSection, getPageSection, getSiteSettings } from "@/lib/supabase/content"
 
 export const dynamic = "force-dynamic"
+
+export const metadata: Metadata = {
+  title: "Contacto | GONZ TATTOO",
+  description: "Consultá por tu tatuaje. Mandá tu idea, ubicación, tamaño y referencias directo al artista.",
+}
 
 export default async function ContactPage() {
   const [settings, footer, section] = await Promise.all([getSiteSettings(), getGlobalFooterSection(), getPageSection("contact")])

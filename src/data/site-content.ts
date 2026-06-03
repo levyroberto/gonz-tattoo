@@ -3,3 +3,6 @@ export const navLinks = [
   { href: "/disenos", label: "Diseños" },
   { href: "/#about", label: "Sobre mí" },
 ]
+
+/** Link del botón CTA principal del header ("Consultar"). */
+export const ctaLink = { href: "/contact", label: "CONSULTAR" }

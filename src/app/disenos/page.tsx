@@ -1,11 +1,17 @@
+import type { Metadata } from "next"
 import { Suspense } from "react"
 
 import { FlashGallery } from "@/components/flash/flash-gallery"
-import { SiteFooter } from "@/components/home/site-footer"
-import { SiteHeader } from "@/components/home/site-header"
+import { SiteFooter } from "@/components/layout/site-footer"
+import { SiteHeader } from "@/components/layout/site-header"
 import { getFlashDesigns, getGlobalFooterSection, getPageSection, getSiteSettings } from "@/lib/supabase/content"
 
 export const dynamic = "force-dynamic"
+
+export const metadata: Metadata = {
+  title: "Diseños | GONZ TATTOO",
+  description: "Diseños flash disponibles para elegir, ubicar y tatuar. Tradicionales, listos para reservar.",
+}
 
 export default async function DesignsPage() {
   const [designs, settings, footer, section] = await Promise.all([

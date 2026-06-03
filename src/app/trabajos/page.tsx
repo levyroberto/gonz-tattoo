@@ -1,11 +1,17 @@
+import type { Metadata } from "next"
 import { Suspense } from "react"
 
 import { PortfolioGallery } from "@/components/portfolio/portfolio-gallery"
-import { SiteFooter } from "@/components/home/site-footer"
-import { SiteHeader } from "@/components/home/site-header"
+import { SiteFooter } from "@/components/layout/site-footer"
+import { SiteHeader } from "@/components/layout/site-header"
 import { getGlobalFooterSection, getPageSection, getPortfolioItems, getSiteSettings } from "@/lib/supabase/content"
 
 export const dynamic = "force-dynamic"
+
+export const metadata: Metadata = {
+  title: "Trabajos | GONZ TATTOO",
+  description: "Galería de tatuajes realizados. Old school, tradicional y diseños con línea, contraste y presencia.",
+}
 
 export default async function TrabajosPage() {
   const [tattoos, settings, footer, section] = await Promise.all([

@@ -1,6 +1,6 @@
 import { HomeSectionRenderer } from "@/components/home/home-section-renderer"
-import { SiteFooter } from "@/components/home/site-footer"
-import { SiteHeader } from "@/components/home/site-header"
+import { SiteFooter } from "@/components/layout/site-footer"
+import { SiteHeader } from "@/components/layout/site-header"
 import { getFlashDesigns, getGlobalFooterSection, getHomeSections, getPageSection, getPortfolioItems, getSiteSettings } from "@/lib/supabase/content"
 
 export const dynamic = "force-dynamic"

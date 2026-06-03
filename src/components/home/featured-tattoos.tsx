@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import { useState } from "react"
 
-import { TattooImageLightbox } from "@/components/tattoo-image-lightbox"
+import { TattooImageLightbox } from "@/components/ui/tattoo-image-lightbox"
 import type { FeaturedPortfolioSectionContent, FeaturedPortfolioSectionLayout, FeaturedPortfolioSectionStyle } from "@/data/home-sections"
 import type { Tattoo } from "@/data/tattoos"
 import { useLightboxOpenGuard } from "@/hooks/use-lightbox-open-guard"
