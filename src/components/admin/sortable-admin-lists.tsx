@@ -29,7 +29,7 @@ import {
   updateFlashDesign,
   updatePortfolioItem,
 } from "@/app/admin/actions"
-import { AdminActionForm, FieldError, hasImageValue, type RequiredFieldRule } from "@/components/admin/admin-action-form"
+import { AdminActionForm, FieldError, FormMessage, hasImageValue, type RequiredFieldRule } from "@/components/admin/admin-action-form"
 import { ActiveToggle } from "@/components/admin/active-toggle"
 import { ImageInput } from "@/components/admin/image-input"
 import { LabeledField } from "@/components/admin/labeled-field"
@@ -167,6 +167,7 @@ export function SortablePortfolioList({
   statusFilter = "all",
 }: SortablePortfolioListProps) {
   const [openItemId, setOpenItemId] = useState<number | null>(null)
+  const [dirtyItemIds, setDirtyItemIds] = useState<Set<number>>(new Set())
   const [message, setMessage] = useState<string | null>(null)
   const [isError, setIsError] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -306,6 +307,11 @@ export function SortablePortfolioList({
                 </button>
               </div>
               <div className="flex shrink-0 items-center gap-2">
+                {dirtyItemIds.has(item.id) && openItemId !== item.id && (
+                  <span className="rounded-sm border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
+                    sin guardar
+                  </span>
+                )}
                 <StatusBadge isActive={item.isActive} />
                 <Button
                   type="button"
@@ -323,7 +329,14 @@ export function SortablePortfolioList({
               </div>
             </div>
             {openItemId === item.id && <div className="grid gap-3 border-t border-border p-3">
-              <AdminActionForm action={updatePortfolioItem} className="grid gap-3" onSuccess={updateItemFromForm} requiredFields={portfolioRequiredFields}>
+              <AdminActionForm
+                action={updatePortfolioItem}
+                className="grid gap-3"
+                onSuccess={updateItemFromForm}
+                onDirtyChange={(dirty) => setDirtyItemIds((prev) => { const next = new Set(prev); dirty ? next.add(item.id) : next.delete(item.id); return next })}
+                requiredFields={portfolioRequiredFields}
+                showMessageAtBottom={false}
+              >
                 <input name="id" type="hidden" value={item.id} />
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div className="grid gap-2">
@@ -363,7 +376,8 @@ export function SortablePortfolioList({
                     onSuccess={removeItemFromForm}
                   />
                   <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" onClick={() => setOpenItemId(null)}>
+                    <FormMessage />
+                    <Button type="button" variant="outline" onClick={() => { setOpenItemId(null); setDirtyItemIds((prev) => { const next = new Set(prev); next.delete(item.id); return next }) }}>
                       Cancelar
                     </Button>
                     <Button type="submit" variant="default">
@@ -398,6 +412,7 @@ export function SortableFlashList({
   statusFilter = "all",
 }: SortableFlashListProps) {
   const [openItemId, setOpenItemId] = useState<number | null>(null)
+  const [dirtyItemIds, setDirtyItemIds] = useState<Set<number>>(new Set())
   const [message, setMessage] = useState<string | null>(null)
   const [isError, setIsError] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -542,6 +557,11 @@ export function SortableFlashList({
                 </button>
               </div>
               <div className="flex shrink-0 items-center gap-2">
+                {dirtyItemIds.has(item.id) && openItemId !== item.id && (
+                  <span className="rounded-sm border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
+                    sin guardar
+                  </span>
+                )}
                 <StatusBadge isActive={item.isActive} />
                 <Button
                   type="button"
@@ -559,7 +579,14 @@ export function SortableFlashList({
               </div>
             </div>
             {openItemId === item.id && <div className="grid gap-3 border-t border-border p-3">
-              <AdminActionForm action={updateFlashDesign} className="grid gap-3" onSuccess={updateItemFromForm} requiredFields={flashRequiredFields}>
+              <AdminActionForm
+                action={updateFlashDesign}
+                className="grid gap-3"
+                onSuccess={updateItemFromForm}
+                onDirtyChange={(dirty) => setDirtyItemIds((prev) => { const next = new Set(prev); dirty ? next.add(item.id) : next.delete(item.id); return next })}
+                requiredFields={flashRequiredFields}
+                showMessageAtBottom={false}
+              >
                 <input name="id" type="hidden" value={item.id} />
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div className="grid gap-2">
@@ -605,7 +632,8 @@ export function SortableFlashList({
                     onSuccess={removeItemFromForm}
                   />
                   <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" onClick={() => setOpenItemId(null)}>
+                    <FormMessage />
+                    <Button type="button" variant="outline" onClick={() => { setOpenItemId(null); setDirtyItemIds((prev) => { const next = new Set(prev); next.delete(item.id); return next }) }}>
                       Cancelar
                     </Button>
                     <Button type="submit" variant="default">

@@ -3,7 +3,7 @@
 import { useState } from "react"
 
 import { updateFooterSectionContent } from "@/app/admin/actions"
-import { AdminActionForm } from "@/components/admin/admin-action-form"
+import { AdminActionForm, FormMessage } from "@/components/admin/admin-action-form"
 import { CollapsibleAdminCard } from "@/components/admin/collapsible-admin-card"
 import { Button } from "@/components/ui/button"
 import type { FooterSection } from "@/data/global-sections"
@@ -36,14 +36,10 @@ export function FooterSectionForm({ footer }: FooterSectionFormProps) {
 
   return (
     <CollapsibleAdminCard title="Footer global" description="Contenido visual compartido por todas las páginas.">
-      <AdminActionForm action={updateFooterSectionContent} className="grid gap-4" onSuccess={updateLocalContent}>
+      <AdminActionForm action={updateFooterSectionContent} className="grid gap-4" onSuccess={updateLocalContent} showMessageAtBottom={false}>
         <label className="grid gap-1.5 text-sm text-muted-foreground">
           Texto del footer
-          <textarea
-            className={tallFieldClass}
-            name="tagline"
-            defaultValue={content.tagline}
-          />
+          <textarea className={tallFieldClass} name="tagline" defaultValue={content.tagline} />
         </label>
 
         <label className="grid gap-1.5 text-sm text-muted-foreground">
@@ -51,9 +47,15 @@ export function FooterSectionForm({ footer }: FooterSectionFormProps) {
           <input className={fieldClass} name="legal_text" defaultValue={content.legalText} />
         </label>
 
-        <Button type="submit" className="justify-self-start">
-          Guardar footer
-        </Button>
+        <div className="flex items-center gap-2 justify-self-end">
+          <FormMessage />
+          <Button type="reset" variant="outline">
+            Cancelar
+          </Button>
+          <Button type="submit">
+            Guardar footer
+          </Button>
+        </div>
       </AdminActionForm>
     </CollapsibleAdminCard>
   )

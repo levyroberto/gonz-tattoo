@@ -23,7 +23,7 @@ import { ChevronDown, GripVertical, Plus, Trash2, X } from "lucide-react"
 import { type FormEvent, type ReactNode, useEffect, useRef, useState, useTransition } from "react"
 
 import { createHomeSection, deleteHomeSection, reorderHomeSections, updateHomeSectionContent, updateHomeSectionEnabled } from "@/app/admin/actions"
-import { AdminActionForm } from "@/components/admin/admin-action-form"
+import { AdminActionForm, FormMessage } from "@/components/admin/admin-action-form"
 import { ConfirmDeleteModal } from "@/components/admin/confirm-delete-modal"
 import { ImageInput } from "@/components/admin/image-input"
 import { Button } from "@/components/ui/button"
@@ -881,6 +881,7 @@ export function HomeSectionsManager({
 }: HomeSectionsManagerProps) {
   const [orderedSections, setOrderedSections] = useState(sections)
   const [openSectionId, setOpenSectionId] = useState<string | null>(null)
+  const [dirtySectionIds, setDirtySectionIds] = useState<Set<string>>(new Set())
   const [draftContent, setDraftContent] = useState<HomeSectionDraft | null>(null)
   const [deletingSectionId, setDeletingSectionId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -1199,6 +1200,11 @@ export function HomeSectionsManager({
                   </div>
 
                   <div className="col-start-2 flex flex-wrap items-center gap-2 justify-self-start md:col-auto md:justify-self-end">
+                    {dirtySectionIds.has(section.id) && openSectionId !== section.id && (
+                      <span className="rounded-sm border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
+                        sin guardar
+                      </span>
+                    )}
                     <div className="hidden md:block">
                       <StatusBadge isActive={section.enabled} />
                     </div>
@@ -1234,6 +1240,8 @@ export function HomeSectionsManager({
                     className="grid gap-3"
                     onChange={(event) => handleSectionFormChange(section, event)}
                     onSuccess={updateSectionContent}
+                    onDirtyChange={(dirty) => setDirtySectionIds((prev) => { const next = new Set(prev); dirty ? next.add(section.id) : next.delete(section.id); return next })}
+                    showMessageAtBottom={false}
                   >
                     <input name="section_key" type="hidden" value={section.id} />
                     <input name="type" type="hidden" value={section.type} />
@@ -1257,7 +1265,8 @@ export function HomeSectionsManager({
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button type="button" variant="outline" disabled={isPending} onClick={() => toggleOpenSection(section.id)}>
+                        <FormMessage />
+                        <Button type="button" variant="outline" disabled={isPending} onClick={() => { toggleOpenSection(section.id); setDirtySectionIds((prev) => { const next = new Set(prev); next.delete(section.id); return next }) }}>
                           Cancelar
                         </Button>
                         <Button type="submit" variant="default">

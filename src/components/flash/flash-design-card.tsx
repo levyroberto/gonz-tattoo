@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import Image from "next/image"
 
-import type { FlashDesign } from "@/data/flash-designs"
+import { flashStatusBadgeStyles, type FlashDesign } from "@/data/flash-designs"
 import { formatPrice } from "@/lib/format-price"
 
 interface FlashDesignCardProps {
@@ -63,7 +63,7 @@ export function FlashDesignCard({ design, index, onOpen, whatsappUrl }: FlashDes
         className="relative block aspect-square w-full overflow-hidden bg-muted/20 text-left"
       >
         <Image src={design.image} alt={design.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
-        <span className={`absolute bottom-4 right-4 border px-3 py-1 text-xs font-sans tracking-widest uppercase ${styles.badge}`}>
+        <span className={`absolute bottom-4 right-4 border px-3 py-1 text-xs font-sans tracking-widest uppercase ${flashStatusBadgeStyles[design.status]}`}>
           {design.status}
         </span>
       </button>
