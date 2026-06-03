@@ -341,16 +341,32 @@ function FormField({
   label,
   name,
   required = true,
+  type = "text",
+  min,
+  max,
 }: {
   defaultValue: string
   label: string
   name: string
   required?: boolean
+  type?: "number" | "text"
+  min?: number
+  max?: number
 }) {
   return (
     <label className="grid gap-1 text-sm text-muted-foreground">
       {label}
-      <input className={fieldClass} name={name} defaultValue={defaultValue} required={required} />
+      <input
+        className={fieldClass}
+        name={name}
+        defaultValue={defaultValue}
+        inputMode={type === "number" ? "numeric" : undefined}
+        max={max}
+        min={min}
+        required={required}
+        step={type === "number" ? 1 : undefined}
+        type={type}
+      />
     </label>
   )
 }
@@ -382,6 +398,42 @@ function SelectField({
         ))}
       </select>
     </label>
+  )
+}
+
+function ColumnCountField({
+  defaultValue,
+  layoutStyle,
+  name,
+}: {
+  defaultValue: string
+  layoutStyle: string
+  name: string
+}) {
+  if (layoutStyle === "framed-grid") {
+    return (
+      <SelectField
+        label="Columnas a mostrar"
+        name={name}
+        defaultValue={defaultValue}
+        options={[
+          { label: "2", value: "2" },
+          { label: "3", value: "3" },
+        ]}
+      />
+    )
+  }
+
+  return (
+    <FormField
+      label="Columnas a mostrar"
+      name={name}
+      defaultValue={defaultValue}
+      required
+      type="number"
+      min={2}
+      max={8}
+    />
   )
 }
 
@@ -688,6 +740,16 @@ function SectionFieldControl({
   const required = field.required ?? true
   const rawValue = field.target === "style" ? style[field.key] : field.target === "layout" ? layout[field.key] : content[field.key]
 
+  if (field.key === "columnsDesktop") {
+    return (
+      <ColumnCountField
+        name={field.formName}
+        defaultValue={String(rawValue ?? "")}
+        layoutStyle={String(layout.layoutStyle ?? "")}
+      />
+    )
+  }
+
   if (field.buttonPreview) {
     return (
       <ButtonPreviewField
@@ -748,6 +810,7 @@ function SectionFieldControl({
         />
       )
     case "number":
+      return <FormField label={field.label} name={field.formName} defaultValue={String(rawValue ?? "")} required={required} type="number" min={field.min} max={field.max} />
     case "text":
     default:
       return <FormField label={field.label} name={field.formName} defaultValue={String(rawValue ?? "")} required={required} />
@@ -803,7 +866,15 @@ function HomeSectionContentFields({
     return null
   }
 
-  const mainFields = definition.fields.filter((field) => !field.inFilterBox)
+  const mainFields = definition.fields.filter((field) => {
+    const layoutStyle = "layoutStyle" in section.layout ? section.layout.layoutStyle : ""
+
+    if (field.key === "columnsDesktop" && (layoutStyle === "bento-grid" || layoutStyle === "carousel")) {
+      return false
+    }
+
+    return !field.inFilterBox
+  })
   const filterFields = definition.fields.filter((field) => field.inFilterBox)
   const filterSummaryBadges = getFilterSummaryBadges(section)
 
@@ -1240,7 +1311,17 @@ export function HomeSectionsManager({
                     className="grid gap-3"
                     onChange={(event) => handleSectionFormChange(section, event)}
                     onSuccess={updateSectionContent}
-                    onDirtyChange={(dirty) => setDirtySectionIds((prev) => { const next = new Set(prev); dirty ? next.add(section.id) : next.delete(section.id); return next })}
+                    onDirtyChange={(dirty) => setDirtySectionIds((prev) => {
+                      const next = new Set(prev)
+
+                      if (dirty) {
+                        next.add(section.id)
+                      } else {
+                        next.delete(section.id)
+                      }
+
+                      return next
+                    })}
                     showMessageAtBottom={false}
                   >
                     <input name="section_key" type="hidden" value={section.id} />

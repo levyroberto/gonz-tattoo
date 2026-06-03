@@ -45,6 +45,7 @@ export type FeaturedPortfolioSectionContent = {
 }
 
 export type FeaturedPortfolioSectionLayout = {
+  columnsDesktop: number
   variant: "carousel"
   layoutStyle: "carousel" | "grid" | "framed-grid" | "bento-grid"
 }
@@ -66,7 +67,7 @@ export type FlashPreviewSectionContent = {
 }
 
 export type FlashPreviewSectionLayout = {
-  columnsDesktop: 3
+  columnsDesktop: number
   columnsMobile: 2
   layoutStyle: "carousel" | "grid" | "framed-grid" | "bento-grid"
 }
@@ -193,6 +194,7 @@ export const homeSections: HomeSection[] = [
       limit: 4,
     },
     layout: {
+      columnsDesktop: 3,
       variant: "carousel",
       layoutStyle: "carousel",
     },

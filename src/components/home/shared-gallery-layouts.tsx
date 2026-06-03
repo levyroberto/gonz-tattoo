@@ -4,7 +4,7 @@ import { motion } from "framer-motion"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { type PointerEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react"
+import { type CSSProperties, type PointerEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 
 import { normalizeInternalLink } from "@/lib/internal-links"
 
@@ -31,7 +31,14 @@ type GalleryAction = {
 
 type SharedGalleryLayoutProps = {
   action?: GalleryAction
+  columnsDesktop?: number
   items: SharedGalleryItem[]
+}
+
+type GalleryGridStyle = CSSProperties & {
+  "--gallery-card-width": string
+  "--gallery-columns-desktop": number
+  "--gallery-grid-max-width": string
 }
 
 const badgeClassNames: Record<NonNullable<SharedGalleryItem["badgeTone"]>, string> = {
@@ -270,10 +277,30 @@ function PrimaryOutlineAction({ action }: { action: GalleryAction }) {
   )
 }
 
-export function BracketGridLayout({ action, items }: SharedGalleryLayoutProps) {
+function getDesktopColumnCount(columnsDesktop?: number) {
+  const columnCount = Number(columnsDesktop)
+
+  return Number.isInteger(columnCount) && columnCount >= 2 && columnCount <= 8 ? columnCount : 3
+}
+
+function getGridMaxWidth(columnsDesktop: number, gap: string, extraWidth = "0px") {
+  return `calc(${columnsDesktop} * var(--gallery-card-width) + ${columnsDesktop - 1} * ${gap} + ${extraWidth} + 1px)`
+}
+
+export function BracketGridLayout({ action, columnsDesktop, items }: SharedGalleryLayoutProps) {
+  const desktopColumnCount = getDesktopColumnCount(columnsDesktop)
+  const gridStyle: GalleryGridStyle = {
+    "--gallery-card-width": "calc((900px - 2 * 3px) / 3)",
+    "--gallery-columns-desktop": desktopColumnCount,
+    "--gallery-grid-max-width": getGridMaxWidth(desktopColumnCount, "3px"),
+  }
+
   return (
     <>
-      <div className="mx-auto grid max-w-[900px] grid-cols-2 gap-[3px] md:grid-cols-3">
+      <div
+        className="grid grid-cols-2 gap-[3px] md:relative md:left-1/2 md:w-[min(calc(100vw-2rem),var(--gallery-grid-max-width))] md:-translate-x-1/2 md:grid-cols-[repeat(auto-fit,minmax(min(100%,var(--gallery-card-width)),var(--gallery-card-width)))] md:justify-center"
+        style={gridStyle}
+      >
         {items.map((item, index) => (
           <GalleryItemButton
             key={item.id}
@@ -347,11 +374,20 @@ function FramedGridCard({ index, item }: { index: number; item: SharedGalleryIte
   )
 }
 
-export function FramedGridLayout({ action, items }: SharedGalleryLayoutProps) {
+export function FramedGridLayout({ action, columnsDesktop, items }: SharedGalleryLayoutProps) {
+  const desktopColumnCount = getDesktopColumnCount(columnsDesktop)
+  const gridStyle: GalleryGridStyle = {
+    "--gallery-card-width": "calc((min(100vw - 2rem, 1200px) - 2 * 1rem - 2rem - 2px) / 3)",
+    "--gallery-columns-desktop": desktopColumnCount,
+    "--gallery-grid-max-width": getGridMaxWidth(desktopColumnCount, "1rem", "2rem"),
+  }
+
   return (
     <>
-      <div className="relative paper-texture vintage-border p-4 md:p-8">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
+      <div className="relative paper-texture vintage-border p-3 md:left-1/2 md:w-[min(calc(100vw-2rem),var(--gallery-grid-max-width))] md:-translate-x-1/2 md:p-4" style={gridStyle}>
+        <div
+          className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(var(--gallery-columns-desktop),minmax(0,1fr))] md:gap-4"
+        >
           {items.map((item, index) => (
             item.renderFramedGridCard ? item.renderFramedGridCard(index) : <FramedGridCard key={item.id} item={item} index={index} />
           ))}

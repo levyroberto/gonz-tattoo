@@ -47,6 +47,7 @@ export function FeaturedTattoos({ tattoos, content, layout, style }: FeaturedTat
   const hasHeader = Boolean(content.eyebrow || content.title || content.highlightedTitle)
   const action = content.buttonHref && content.buttonLabel ? { href: content.buttonHref, label: content.buttonLabel } : undefined
   const layoutStyle = layout.layoutStyle
+  const columnsDesktop = layout.columnsDesktop
   const chrome = getLayoutChrome(layoutStyle)
 
   function openTattoo(tattoo: Tattoo) {
@@ -109,8 +110,8 @@ export function FeaturedTattoos({ tattoos, content, layout, style }: FeaturedTat
         )}
 
         {layoutStyle === "carousel" && <CarouselGalleryLayout items={items} action={action} />}
-        {layoutStyle === "grid" && <BracketGridLayout items={items} action={action} />}
-        {layoutStyle === "framed-grid" && <FramedGridLayout items={items} action={action} />}
+        {layoutStyle === "grid" && <BracketGridLayout items={items} action={action} columnsDesktop={columnsDesktop} />}
+        {layoutStyle === "framed-grid" && <FramedGridLayout items={items} action={action} columnsDesktop={columnsDesktop} />}
         {layoutStyle === "bento-grid" && <BentoGridLayout items={items} action={action} />}
       </div>
 

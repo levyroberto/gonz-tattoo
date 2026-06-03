@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { getSectionDefinition, parseSectionContentFromForm } from "../../data/home-section-schema"
+import { getSectionDefinition, parseSectionContentFromForm, parseSectionLayoutFromForm } from "../../data/home-section-schema"
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -113,6 +113,33 @@ describe("parseSectionContentFromForm — featuredPortfolio", () => {
     const content = parseSectionContentFromForm(formData, definition)
     expect(content.limit).toBe(4) // numberFallback de la definición
   })
+
+  it("parsea columnas a mostrar como layout numérico", () => {
+    const formData = makeFormData({ columns_desktop: "6", layout_style: "grid" })
+    const layout = parseSectionLayoutFromForm(formData, definition)
+    expect(layout.columnsDesktop).toBe(6)
+    expect(layout.layoutStyle).toBe("grid")
+  })
+
+  it("usa fallback si las columnas a mostrar están fuera de rango", () => {
+    const formData = makeFormData({ columns_desktop: "9" })
+    const layout = parseSectionLayoutFromForm(formData, definition)
+    expect(layout.columnsDesktop).toBe(3)
+  })
+
+  it("fija bento en 3 columnas", () => {
+    const formData = makeFormData({ columns_desktop: "6", layout_style: "bento-grid" })
+    const layout = parseSectionLayoutFromForm(formData, definition)
+    expect(layout.columnsDesktop).toBe(3)
+    expect(layout.layoutStyle).toBe("bento-grid")
+  })
+
+  it("fija carrusel en 3 columnas", () => {
+    const formData = makeFormData({ columns_desktop: "6", layout_style: "carousel" })
+    const layout = parseSectionLayoutFromForm(formData, definition)
+    expect(layout.columnsDesktop).toBe(3)
+    expect(layout.layoutStyle).toBe("carousel")
+  })
 })
 
 // ─── flashPreview ────────────────────────────────────────────────────────────
@@ -144,6 +171,20 @@ describe("parseSectionContentFromForm — flashPreview", () => {
     const formData = makeFormData({ limit: "-1" })
     const content = parseSectionContentFromForm(formData, definition)
     expect(content.limit).toBe(6)
+  })
+
+  it("parsea columnas a mostrar como layout numérico", () => {
+    const formData = makeFormData({ columns_desktop: "2", layout_style: "framed-grid" })
+    const layout = parseSectionLayoutFromForm(formData, definition)
+    expect(layout.columnsDesktop).toBe(2)
+    expect(layout.layoutStyle).toBe("framed-grid")
+  })
+
+  it("limita grilla enmarcada a 3 columnas", () => {
+    const formData = makeFormData({ columns_desktop: "6", layout_style: "framed-grid" })
+    const layout = parseSectionLayoutFromForm(formData, definition)
+    expect(layout.columnsDesktop).toBe(3)
+    expect(layout.layoutStyle).toBe("framed-grid")
   })
 })
 

@@ -37,6 +37,10 @@ export type SectionFieldDefinition = {
   defaultValue?: string | number | boolean
   /** Fallback al parsear números vacíos/ inválidos. */
   numberFallback?: number
+  /** Límite inferior opcional para campos numéricos. */
+  min?: number
+  /** Límite superior opcional para campos numéricos. */
+  max?: number
   /** Origen de opciones para los selects de estilo. */
   styleOptions?: "tattoo" | "flash"
   /** Dónde vive el valor: por defecto en `content`. */
@@ -148,6 +152,7 @@ export const SECTION_DEFINITIONS: Record<EditableSiteSectionType, SectionDefinit
       { key: "highlightedTitle", formName: "highlighted_title", label: "Título destacado", type: "text", required: true, width: "half" },
       { key: "eyebrow", formName: "eyebrow", label: "Eyebrow", type: "text", required: true, width: "full" },
       { key: "layoutStyle", formName: "layout_style", label: "Layout style", type: "select", target: "layout", width: "half", options: galleryLayoutStyleOptions },
+      { key: "columnsDesktop", formName: "columns_desktop", label: "Columnas a mostrar", type: "number", target: "layout", numberFallback: 3, min: 2, max: 8, width: "half" },
       { key: "buttonLabel", formName: "button_label", label: "Botón", type: "text", required: true, width: "half", buttonPreview: "primaryOutline" },
       { key: "buttonHref", formName: "button_href", label: "Link del botón", type: "internalLink", required: true, width: "half" },
       { key: "filterTags", formName: "filter_tags", label: "Filtrar por: Tags", type: "text", required: false, width: "half", inFilterBox: true },
@@ -172,7 +177,7 @@ export const SECTION_DEFINITIONS: Record<EditableSiteSectionType, SectionDefinit
         itemOrder: [],
         limit: 6,
       },
-      layout: { variant: "carousel", layoutStyle: "carousel" },
+      layout: { columnsDesktop: 3, variant: "carousel", layoutStyle: "carousel" },
       style: { background: "card" },
     },
   },
@@ -195,6 +200,7 @@ export const SECTION_DEFINITIONS: Record<EditableSiteSectionType, SectionDefinit
       { key: "highlightedTitle", formName: "highlighted_title", label: "Título destacado", type: "text", required: true, width: "full" },
       { key: "eyebrow", formName: "eyebrow", label: "Eyebrow", type: "text", required: true, width: "full" },
       { key: "layoutStyle", formName: "layout_style", label: "Layout style", type: "select", target: "layout", width: "half", options: galleryLayoutStyleOptions },
+      { key: "columnsDesktop", formName: "columns_desktop", label: "Columnas a mostrar", type: "number", target: "layout", numberFallback: 3, min: 2, max: 8, width: "half" },
       { key: "description", formName: "description", label: "Descripción", type: "textarea", required: true, width: "full" },
       { key: "buttonLabel", formName: "button_label", label: "Botón", type: "text", required: true, width: "half", buttonPreview: "secondaryFilled" },
       { key: "buttonHref", formName: "button_href", label: "Link del botón", type: "internalLink", required: true, width: "half" },
@@ -393,10 +399,10 @@ function getTrimmedString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim()
 }
 
-function getPositiveInteger(value: FormDataEntryValue | null, fallback: number) {
+function getPositiveInteger(value: FormDataEntryValue | null, fallback: number, min = 1, max = Number.MAX_SAFE_INTEGER) {
   const parsedValue = Number(String(value ?? "").trim())
 
-  return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : fallback
+  return Number.isInteger(parsedValue) && parsedValue >= min && parsedValue <= max ? parsedValue : fallback
 }
 
 function getParagraphs(value: FormDataEntryValue | null) {
@@ -421,7 +427,7 @@ export function parseSectionContentFromForm(formData: FormData, definition: Sect
 
     switch (field.type) {
       case "number":
-        content[field.key] = getPositiveInteger(formData.get(field.formName), field.numberFallback ?? 0)
+        content[field.key] = getPositiveInteger(formData.get(field.formName), field.numberFallback ?? 0, field.min, field.max)
         break
       case "checkbox":
         content[field.key] = formData.get(field.formName) === "on"
@@ -456,10 +462,30 @@ export function parseSectionLayoutFromForm(formData: FormData, definition: Secti
   const layoutFields = definition.fields.filter((field) => field.target === "layout")
 
   for (const field of layoutFields) {
+    if (field.type === "number") {
+      layout[field.key] = getPositiveInteger(
+        formData.get(field.formName),
+        Number(definition.defaults.layout[field.key] ?? field.numberFallback ?? 0),
+        field.min,
+        field.max
+      )
+      continue
+    }
+
     const value = getTrimmedString(formData, field.formName)
     const hasKnownOption = field.options?.some((option) => option.value === value) ?? true
 
     layout[field.key] = hasKnownOption ? value : definition.defaults.layout[field.key]
+  }
+
+  if (layout.layoutStyle === "bento-grid" || layout.layoutStyle === "carousel") {
+    layout.columnsDesktop = 3
+  }
+
+  if (layout.layoutStyle === "framed-grid") {
+    const columnsDesktop = Number(layout.columnsDesktop)
+
+    layout.columnsDesktop = Number.isInteger(columnsDesktop) && columnsDesktop >= 2 && columnsDesktop <= 3 ? columnsDesktop : 3
   }
 
   return layout
