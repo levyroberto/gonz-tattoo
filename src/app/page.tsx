@@ -1,21 +1,19 @@
 import { HomeSectionRenderer } from "@/components/home/home-section-renderer"
 import { SiteFooter } from "@/components/layout/site-footer"
 import { SiteHeader } from "@/components/layout/site-header"
-import { getFlashDesigns, getGlobalFooterSection, getHomeSections, getPageSection, getPortfolioItems, getSiteSettings } from "@/lib/supabase/content"
+import { getAboutImage, getFlashDesigns, getGlobalFooterSection, getHomeSections, getPortfolioItems, getSiteSettings } from "@/lib/supabase/content"
 
 export const dynamic = "force-dynamic"
 
 export default async function Home() {
-  const [portfolioItems, flashDesigns, settings, sections, footer, contactSection] = await Promise.all([
+  const [portfolioItems, flashDesigns, settings, sections, footer, aboutImage] = await Promise.all([
     getPortfolioItems(),
     getFlashDesigns(),
     getSiteSettings(),
     getHomeSections(),
     getGlobalFooterSection(),
-    getPageSection("contact"),
+    getAboutImage(),
   ])
-
-  const aboutImage = contactSection.type === "contactPage" ? contactSection.style.image : ""
 
   return (
     <main className="min-h-screen">

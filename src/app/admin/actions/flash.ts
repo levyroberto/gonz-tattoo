@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 import { createSupabaseAuthServerClient } from "@/lib/supabase/server"
-import { resolveImageUrl } from "@/app/admin/actions/image-upload"
+import { resolveImageUrl } from "@/lib/supabase/storage"
 
 function revalidatePublicContent() {
   revalidatePath("/")

@@ -613,3 +613,14 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     artistYears: data.artist_years ?? undefined,
   }
 }
+
+/**
+ * Devuelve la URL de la imagen usada en la sección "Sobre mí" de la home.
+ * La imagen vive actualmente en site_sections (page_key="contact", section_key="contact-main").
+ * Si en el futuro se migra al about home section, actualizar solo esta función.
+ */
+export async function getAboutImage(): Promise<string> {
+  const contactSection = await getPageSection("contact")
+
+  return contactSection.type === "contactPage" ? contactSection.style.image : ""
+}

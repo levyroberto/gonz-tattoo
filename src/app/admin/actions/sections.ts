@@ -7,7 +7,7 @@ import { redirect } from "next/navigation"
 
 import { getSectionDefinition, getSectionImageField, parseSectionContentFromForm, parseSectionLayoutFromForm } from "@/data/home-section-schema"
 import { createSupabaseAuthServerClient } from "@/lib/supabase/server"
-import { resolveImageUrl } from "@/app/admin/actions/image-upload"
+import { resolveImageUrl } from "@/lib/supabase/storage"
 
 function getRequiredString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim()
