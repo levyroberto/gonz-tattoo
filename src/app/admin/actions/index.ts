@@ -1,5 +1,4 @@
-"use server"
-
+// Barrel de re-exportación — sin "use server" porque cada módulo ya lo declara.
 export { loginAdmin, logoutAdmin } from "@/app/admin/actions/auth"
 export { updateSiteSettings } from "@/app/admin/actions/settings"
 export {
