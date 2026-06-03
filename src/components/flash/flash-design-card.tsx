@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import Image from "next/image"
 
+import { WhatsAppButton, PrimaryButton } from "@/components/ui/buttons"
 import { flashStatusBadgeStyles, type FlashDesign } from "@/data/flash-designs"
 import { formatPrice } from "@/lib/format-price"
 
