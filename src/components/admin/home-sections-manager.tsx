@@ -29,7 +29,7 @@ import { ConfirmDeleteModal } from "@/components/admin/confirm-delete-modal"
 import { ImageInput } from "@/components/admin/image-input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import type { FlashDesign } from "@/data/flash-designs"
+import type { SaleableArtwork as FlashDesign } from "@/data/artworks"
 import type { HomeSection } from "@/data/home-sections"
 import {
   SECTION_DEFINITIONS,
@@ -41,7 +41,7 @@ import {
   type SectionFieldDefinition,
   type SectionFieldWidth,
 } from "@/data/home-section-schema"
-import type { Tattoo } from "@/data/tattoos"
+import type { TattooArtwork as Tattoo } from "@/data/artworks"
 import { filterFlashDesigns, filterPortfolioItems } from "@/lib/home-section-filters"
 import { normalizeInternalLink } from "@/lib/internal-links"
 
@@ -296,7 +296,7 @@ function SectionPreview({
     case "flashPreview":
       return (
         <PreviewImageStrip
-          images={filterFlashDesigns(flashPreviewItems, section, { applyLimit: false }).map((item) => ({ alt: item.name, id: item.id, src: item.image }))}
+          images={filterFlashDesigns(flashPreviewItems, section, { applyLimit: false }).map((item) => ({ alt: item.title, id: item.id, src: item.image }))}
           itemOrder={section.content.itemOrder}
           onReorder={(itemIds) => onItemOrderChange?.(section.id, itemIds)}
         />

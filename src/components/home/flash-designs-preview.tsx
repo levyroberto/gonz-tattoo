@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 
-import type { FlashDesign } from "@/data/flash-designs"
+import type { SaleableArtwork as FlashDesign, ArtworkStatus } from "@/data/artworks"
 import type { FlashPreviewSectionContent, FlashPreviewSectionLayout, FlashPreviewSectionStyle } from "@/data/home-sections"
 import { formatPrice } from "@/lib/format-price"
 
@@ -29,7 +29,7 @@ const sectionBackgroundClassNames: Record<FlashPreviewSectionStyle["background"]
   default: "bg-background",
 }
 
-const statusBadgeTone: Record<FlashDesign["status"], SharedGalleryItem["badgeTone"]> = {
+const statusBadgeTone: Record<ArtworkStatus, SharedGalleryItem["badgeTone"]> = {
   Disponible: "primary",
   Reservado: "secondary",
   Reclamado: "muted",
@@ -55,7 +55,7 @@ export function FlashDesignsPreview({ designs, content, layout, style }: FlashDe
   const chrome = getLayoutChrome(layoutStyle)
   const items: SharedGalleryItem[] = designs.map((design) => ({
     id: design.id,
-    title: design.name,
+    title: design.title,
     subtitle: design.style || "Diseño",
     image: design.image,
     href: `/disenos?id=${design.id}`,

@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useState } from "react"
 
 import { TattooImageLightbox } from "@/components/ui/tattoo-image-lightbox"
-import type { FlashDesign } from "@/data/flash-designs"
+import type { SaleableArtwork as FlashDesign } from "@/data/artworks"
 import type { FlashPageSectionContent, FlashPageSectionLayout, FlashPageSectionStyle } from "@/data/page-sections"
 import { useLightboxOpenGuard } from "@/hooks/use-lightbox-open-guard"
 
@@ -138,7 +138,7 @@ export function FlashGallery({ content, designs, layout, style, whatsappUrl }: F
         )}
       </div>
       <TattooImageLightbox
-        tattoo={selectedDesign ? { image: selectedDesign.image, title: selectedDesign.name } : null}
+        tattoo={selectedDesign ? { image: selectedDesign.image, title: selectedDesign.title } : null}
         onClose={() => setSelectedDesign(null)}
       />
     </section>

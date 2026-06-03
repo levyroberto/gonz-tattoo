@@ -2,19 +2,18 @@
 
 import { useState } from "react"
 
-import { createFlashDesign, createPortfolioItem } from "@/app/admin/actions"
+import { createSaleableArtwork, createTattoo } from "@/app/admin/actions"
 import { AdminActionForm, FieldError, hasImageValue, type RequiredFieldRule } from "@/components/admin/admin-action-form"
 import { ActiveToggle } from "@/components/admin/active-toggle"
 import { CollapsibleAdminCard } from "@/components/admin/collapsible-admin-card"
 import { ImageInput } from "@/components/admin/image-input"
 import { LabeledField } from "@/components/admin/labeled-field"
-import { type AdminStatusFilter, SortableFlashList, SortablePortfolioList } from "@/components/admin/sortable-admin-lists"
+import { type AdminStatusFilter, SortableDesignsList, SortablePortfolioList } from "@/components/admin/sortable-admin-lists"
 import { TagInputField } from "@/components/admin/tag-input-field"
 import { TattooStyleSelect } from "@/components/admin/tattoo-style-select"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import type { FlashDesign } from "@/data/flash-designs"
-import type { Tattoo } from "@/data/tattoos"
+import type { SaleableArtwork, TattooArtwork } from "@/data/artworks"
 import type { TattooStyleOption } from "@/lib/supabase/content"
 import { errorIndentClass, fieldClass, tallFieldClass } from "@/components/admin/admin-field-styles"
 
@@ -24,7 +23,7 @@ const tattooRequiredFields: RequiredFieldRule[] = [
 ]
 
 const designRequiredFields: RequiredFieldRule[] = [
-  { name: "name", message: "El nombre es obligatorio." },
+  { name: "title", message: "El nombre es obligatorio." },
   { name: "image", message: "La imagen es obligatoria.", check: hasImageValue },
 ]
 
@@ -35,18 +34,18 @@ type AdminActionResult = {
 }
 
 type AdminContentSectionsProps = {
-  flashItems: FlashDesign[]
-  portfolioItems: Tattoo[]
+  flashItems: SaleableArtwork[]
+  portfolioItems: TattooArtwork[]
   tattooStyles: TattooStyleOption[]
 }
 
 type AdminTattoosSectionProps = {
-  portfolioItems: Tattoo[]
+  portfolioItems: TattooArtwork[]
   tattooStyles: TattooStyleOption[]
 }
 
 type AdminDesignsSectionProps = {
-  flashItems: FlashDesign[]
+  flashItems: SaleableArtwork[]
 }
 
 const statusFilterOptions: { value: AdminStatusFilter; label: string }[] = [
@@ -83,18 +82,18 @@ function StatusFilterButtons({
   )
 }
 
-function isPortfolioItem(item: unknown): item is Tattoo {
-  return Boolean(item && typeof item === "object" && "id" in item && "title" in item)
+function isPortfolioItem(item: unknown): item is TattooArtwork {
+  return Boolean(item && typeof item === "object" && "id" in item && "type" in item && (item as { type: unknown }).type === "tattoo")
 }
 
-function isFlashItem(item: unknown): item is FlashDesign {
-  return Boolean(item && typeof item === "object" && "id" in item && "name" in item)
+function isDesignItem(item: unknown): item is SaleableArtwork {
+  return Boolean(item && typeof item === "object" && "id" in item && "price" in item)
 }
 
 export function AdminTattoosSection({ portfolioItems, tattooStyles }: AdminTattoosSectionProps) {
   const [localPortfolioItems, setLocalPortfolioItems] = useState(portfolioItems)
   const [portfolioStatusFilter, setPortfolioStatusFilter] = useState<AdminStatusFilter>("all")
-  const existingTattooStyles = localPortfolioItems.map((item) => item.style)
+  const existingTattooStyles = localPortfolioItems.map((item) => item.style).filter(Boolean) as string[]
   const tattooStyleNames = tattooStyles.length > 0 ? tattooStyles.map((style) => style.name) : existingTattooStyles
 
   function addPortfolioItem(_formData: FormData, result?: AdminActionResult | void) {
@@ -112,7 +111,7 @@ export function AdminTattoosSection({ portfolioItems, tattooStyles }: AdminTatto
 
       <CollapsibleAdminCard title="Nuevo tatuaje" description="Crear un tatuaje para publicar en la web.">
         <AdminActionForm
-          action={createPortfolioItem}
+          action={createTattoo}
           className="grid gap-3"
           onSuccess={addPortfolioItem}
           requiredFields={tattooRequiredFields}
@@ -174,7 +173,7 @@ export function AdminDesignsSection({ flashItems }: AdminDesignsSectionProps) {
   function addFlashItem(_formData: FormData, result?: AdminActionResult | void) {
     const item = result?.item
 
-    if (!isFlashItem(item)) {
+    if (!isDesignItem(item)) {
       return
     }
 
@@ -186,16 +185,17 @@ export function AdminDesignsSection({ flashItems }: AdminDesignsSectionProps) {
 
         <CollapsibleAdminCard title="Nuevo diseño" description="Crear un diseño disponible para consulta.">
           <AdminActionForm
-            action={createFlashDesign}
+            action={createSaleableArtwork}
             className="grid gap-3"
             onSuccess={addFlashItem}
             requiredFields={designRequiredFields}
             resetOnSuccess
           >
-            <LabeledField label="Nombre">
-              <input className={fieldClass} name="name" />
+            <input type="hidden" name="type" value="flash" />
+            <LabeledField label="Título">
+              <input className={fieldClass} name="title" />
             </LabeledField>
-            <FieldError name="name" className={errorIndentClass} />
+            <FieldError name="title" className={errorIndentClass} />
             <LabeledField label="Precio">
               <input className={fieldClass} name="price" type="number" min="0" step="1" inputMode="numeric" />
             </LabeledField>
@@ -209,8 +209,8 @@ export function AdminDesignsSection({ flashItems }: AdminDesignsSectionProps) {
             <LabeledField label="Tags" alignTop>
               <TagInputField className={fieldClass} placeholder="Agregar tag" />
             </LabeledField>
-            <LabeledField label="Tamaño">
-              <input className={fieldClass} name="size" />
+            <LabeledField label="Dimensiones">
+              <input className={fieldClass} name="dimensions" />
             </LabeledField>
             <LabeledField label="Estado">
               <select className={fieldClass} name="status" defaultValue="Disponible">
@@ -235,7 +235,7 @@ export function AdminDesignsSection({ flashItems }: AdminDesignsSectionProps) {
             <StatusFilterButtons value={flashStatusFilter} onChange={setFlashStatusFilter} />
           </CardHeader>
           <CardContent>
-            <SortableFlashList items={localFlashItems} onItemsChange={setLocalFlashItems} statusFilter={flashStatusFilter} />
+            <SortableDesignsList items={localFlashItems} onItemsChange={setLocalFlashItems} statusFilter={flashStatusFilter} />
           </CardContent>
         </Card>
       </section>

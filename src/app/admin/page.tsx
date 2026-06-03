@@ -15,8 +15,8 @@ export default async function AdminPage() {
   const { flashItems, footer, homeSections, portfolioItems, settings, stats, tattooStyles } = await getAdminDashboardContent()
   const tattooStyleNames = tattooStyles.length > 0
     ? tattooStyles.map((style) => style.name)
-    : Array.from(new Set(portfolioItems.map((item) => item.style).filter(Boolean)))
-  const flashStyleNames = Array.from(new Set(flashItems.map((item) => item.style).filter(Boolean)))
+    : Array.from(new Set(portfolioItems.map((item) => item.style).filter((s): s is string => Boolean(s))))
+  const flashStyleNames = Array.from(new Set(flashItems.map((item) => item.style).filter((s): s is string => Boolean(s))))
   const activePortfolioCount = portfolioItems.filter((item) => item.isActive).length
   const activeFlashCount = flashItems.filter((item) => item.isActive).length
 

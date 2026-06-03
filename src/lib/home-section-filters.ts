@@ -60,7 +60,7 @@ export function filterPortfolioItems(
   const shouldApplyLimit = options.applyLimit ?? true
   const filteredItems = items
     .filter((item) => !section.content.featuredOnly || item.isFeatured)
-    .filter((item) => !section.content.filterStyle || item.style.toLowerCase() === section.content.filterStyle.toLowerCase())
+    .filter((item) => !section.content.filterStyle || (item.style ?? "").toLowerCase() === section.content.filterStyle.toLowerCase())
     .filter((item) => matchesTags(item.tags, section.content.filterTags))
     .filter((item) => !section.content.dateFrom || (item.publishedDate ?? "") >= section.content.dateFrom)
     .filter((item) => !section.content.dateTo || (item.publishedDate ?? "") <= section.content.dateTo)
@@ -82,7 +82,7 @@ export function filterFlashDesigns(
 ) {
   const shouldApplyLimit = options.applyLimit ?? true
   const filteredItems = items
-    .filter((item) => !section.content.filterStyle || item.style.toLowerCase() === section.content.filterStyle.toLowerCase())
+    .filter((item) => !section.content.filterStyle || (item.style ?? "").toLowerCase() === section.content.filterStyle.toLowerCase())
     .filter((item) => matchesTags(item.tags, section.content.filterTags))
 
   const orderedItems = applySectionItemOrder(filteredItems, section.content.itemOrder)
