@@ -732,6 +732,34 @@ function SectionFieldControl({
           options={field.styleOptions === "flash" ? flashStyles : tattooStyles}
         />
       )
+    case "typeFilter": {
+      const ARTWORK_TYPE_OPTIONS = [
+        { value: "flash", label: "Diseño flash" },
+        { value: "sculpture", label: "Escultura" },
+        { value: "painting", label: "Pintura" },
+      ]
+      const selectedValues = String(rawValue ?? "").split(",").map((v) => v.trim()).filter(Boolean)
+      return (
+        <div className="grid gap-1.5">
+          <span className="text-xs text-muted-foreground uppercase tracking-wider">{field.label}</span>
+          <div className="flex flex-wrap gap-3">
+            {ARTWORK_TYPE_OPTIONS.map((option) => (
+              <label key={option.value} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name={field.formName}
+                  value={option.value}
+                  defaultChecked={selectedValues.includes(option.value)}
+                  className="accent-primary"
+                />
+                <span className="text-sm text-foreground">{option.label}</span>
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">Sin selección = todos los tipos</p>
+        </div>
+      )
+    }
     case "number":
       return <FormField label={field.label} name={field.formName} defaultValue={String(rawValue ?? "")} required={required} type="number" min={field.min} max={field.max} />
     case "text":
@@ -748,6 +776,7 @@ function getFilterSummaryBadges(section: HomeSection) {
     .map((tag) => tag.trim())
     .filter(Boolean)
   const filterStyle = String(content.filterStyle ?? "").trim()
+  const filterTypes = String(content.filterTypes ?? "").split(",").map((t) => t.trim()).filter(Boolean)
   const dateFrom = String(content.dateFrom ?? "").trim()
   const dateTo = String(content.dateTo ?? "").trim()
 
@@ -757,6 +786,10 @@ function getFilterSummaryBadges(section: HomeSection) {
 
   if (filterStyle) {
     badges.push(`Estilo: ${filterStyle}`)
+  }
+
+  if (filterTypes.length > 0) {
+    badges.push(`Tipo: ${filterTypes.join(", ")}`)
   }
 
   if (dateFrom) {

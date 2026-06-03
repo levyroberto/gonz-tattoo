@@ -11,9 +11,14 @@ import { useLightboxOpenGuard } from "@/hooks/use-lightbox-open-guard"
 
 import { FlashDesignCard } from "./flash-design-card"
 
-const statuses = ["Todo", "Disponible", "Reservado", "Reclamado"] as const
+const SALEABLE_TYPES = ["flash", "sculpture", "painting"] as const
+type SaleableType = (typeof SALEABLE_TYPES)[number]
 
-type FlashStatusFilter = (typeof statuses)[number]
+const TYPE_LABELS: Record<SaleableType, string> = {
+  flash: "Diseño flash",
+  sculpture: "Escultura",
+  painting: "Pintura",
+}
 
 type FlashGalleryProps = {
   content: FlashPageSectionContent
@@ -31,49 +36,50 @@ const gridClassNames: Record<`${FlashPageSectionLayout["columnsTablet"]}-${Flash
   "2-3": "md:grid-cols-2 xl:grid-cols-3",
 }
 
+function parseSelectedType(param: string | null): SaleableType | null {
+  if (!param) return null
+  return SALEABLE_TYPES.includes(param as SaleableType) ? (param as SaleableType) : null
+}
+
 export function FlashGallery({ content, designs, layout, style, whatsappUrl }: FlashGalleryProps) {
   const [selectedDesign, setSelectedDesign] = useState<FlashDesign | null>(null)
   const canOpenLightbox = useLightboxOpenGuard()
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
+
   const requestedDesignId = searchParams.get("id")
-  const requestedStatus = searchParams.get("estado") ?? "Todo"
-  const selectedStatus: FlashStatusFilter = statuses.includes(requestedStatus as FlashStatusFilter)
-    ? (requestedStatus as FlashStatusFilter)
-    : "Todo"
+  const selectedType = parseSelectedType(searchParams.get("tipo"))
+  const availableTypes = SALEABLE_TYPES.filter((t) => designs.some((d) => d.type === t))
+
   const selectedDesignById = requestedDesignId
-    ? designs.find((design) => String(design.id) === requestedDesignId) ?? null
+    ? designs.find((d) => String(d.id) === requestedDesignId) ?? null
     : null
+
   const filteredDesigns = requestedDesignId
-    ? selectedDesignById
-      ? [selectedDesignById]
-      : []
-    : selectedStatus === "Todo"
+    ? selectedDesignById ? [selectedDesignById] : []
+    : selectedType === null
       ? designs
-      : designs.filter((design) => design.status === selectedStatus)
+      : designs.filter((d) => d.type === selectedType)
+
   const gridColumns = gridClassNames[`${layout.columnsTablet}-${layout.columnsDesktop}`]
 
-  function selectStatus(status: FlashStatusFilter) {
-    const nextParams = new URLSearchParams(searchParams)
+  function selectType(type: SaleableType) {
+    const params = new URLSearchParams(searchParams)
+    params.delete("id")
 
-    nextParams.delete("id")
-
-    if (status === "Todo") {
-      nextParams.delete("estado")
+    if (selectedType === type) {
+      params.delete("tipo")
     } else {
-      nextParams.set("estado", status)
+      params.set("tipo", type)
     }
 
-    const query = nextParams.toString()
+    const query = params.toString()
     router.push(query ? `${pathname}?${query}` : pathname, { scroll: false })
   }
 
   function openDesign(design: FlashDesign) {
-    if (!canOpenLightbox()) {
-      return
-    }
-
+    if (!canOpenLightbox()) return
     setSelectedDesign(design)
   }
 
@@ -99,26 +105,31 @@ export function FlashGallery({ content, designs, layout, style, whatsappUrl }: F
           )}
         </motion.div>
 
-        <div className="mt-10 flex flex-wrap justify-center gap-3">
-          {statuses.map((status, index) => (
-            <motion.button
-              key={status}
-              type="button"
-              onClick={() => selectStatus(status)}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 + index * 0.05 }}
-              aria-pressed={selectedStatus === status}
-              className={`border px-4 py-2 font-sans text-sm tracking-widest uppercase transition-colors ${
-                selectedStatus === status
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border text-muted-foreground hover:border-secondary hover:text-secondary"
-              }`}
-            >
-              {status}
-            </motion.button>
-          ))}
-        </div>
+        {availableTypes.length > 1 && (
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
+            {availableTypes.map((type, index) => {
+              const isSelected = selectedType === type
+              return (
+                <motion.button
+                  key={type}
+                  type="button"
+                  onClick={() => selectType(type)}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.1 + index * 0.05 }}
+                  aria-pressed={isSelected}
+                  className={`border px-4 py-2 font-sans text-sm tracking-widest uppercase transition-colors ${
+                    isSelected
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border text-muted-foreground hover:border-secondary hover:text-secondary"
+                  }`}
+                >
+                  {TYPE_LABELS[type]}
+                </motion.button>
+              )
+            })}
+          </div>
+        )}
 
         <div className={`mt-14 grid grid-cols-1 gap-6 ${gridColumns}`}>
           {filteredDesigns.map((design, index) => (

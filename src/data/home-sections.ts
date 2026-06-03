@@ -60,7 +60,7 @@ export type FlashPreviewSectionContent = {
   description: string
   buttonLabel: string
   buttonHref: string
-  filterStyle: string
+  filterTypes: string
   filterTags: string
   itemOrder: number[]
   limit: number
@@ -213,7 +213,7 @@ export const homeSections: HomeSection[] = [
       description: "",
       buttonLabel: "",
       buttonHref: "",
-      filterStyle: "",
+      filterTypes: "",
       filterTags: "",
       itemOrder: [],
       limit: 6,
