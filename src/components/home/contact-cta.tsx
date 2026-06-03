@@ -18,8 +18,10 @@ const sectionBackgroundClassNames: Record<ContactCtaSectionStyle["background"], 
 }
 
 export function ContactCTA({ settings, content, layout, style }: ContactCTAProps) {
-  const hasWhatsapp = Boolean(settings.whatsappUrl && content.whatsappLabel)
-  const hasInstagram = Boolean(settings.instagramUrl && content.instagramLabel)
+  const whatsappUrl = settings.whatsappUrl?.trim() || undefined
+  const instagramUrl = settings.instagramUrl?.trim() || undefined
+  const hasWhatsapp = Boolean(whatsappUrl && content.whatsappLabel)
+  const hasInstagram = Boolean(instagramUrl && content.instagramLabel)
 
   return (
     <section id="contact" className={`relative py-24 ${sectionBackgroundClassNames[style.background]} grunge-texture overflow-hidden`} data-alignment={layout.alignment}>
@@ -47,13 +49,13 @@ export function ContactCTA({ settings, content, layout, style }: ContactCTAProps
 
           {(hasWhatsapp || hasInstagram) && (
             <div className="flex flex-col md:flex-row gap-4 justify-center items-center mb-12">
-              {hasWhatsapp && (
-                <WhatsAppButton href={settings.whatsappUrl} className="w-full md:w-auto">
+              {hasWhatsapp && whatsappUrl && (
+                <WhatsAppButton href={whatsappUrl} className="w-full md:w-auto">
                   {content.whatsappLabel}
                 </WhatsAppButton>
               )}
-              {hasInstagram && (
-                <InstagramButton href={settings.instagramUrl} className="w-full md:w-auto">
+              {hasInstagram && instagramUrl && (
+                <InstagramButton href={instagramUrl} className="w-full md:w-auto">
                   {content.instagramLabel}
                 </InstagramButton>
               )}
