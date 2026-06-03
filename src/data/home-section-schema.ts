@@ -13,6 +13,7 @@ export type SectionFieldType =
   | "checkbox"
   | "internalLink"
   | "styleFilter"
+  | "typeFilter"
   | "image"
   | "paragraphs"
   | "stats"
@@ -207,7 +208,7 @@ export const SECTION_DEFINITIONS: Record<EditableSiteSectionType, SectionDefinit
       { key: "buttonLabel", formName: "button_label", label: "Botón", type: "text", required: true, width: "half", buttonPreview: "primaryOutline" },
       { key: "buttonHref", formName: "button_href", label: "Link del botón", type: "internalLink", required: true, width: "half" },
       { key: "filterTags", formName: "filter_tags", label: "Filtrar por: Tags", type: "text", required: false, width: "half", inFilterBox: true },
-      { key: "filterStyle", formName: "filter_style", label: "Filtrar por: Estilo", type: "styleFilter", styleOptions: "flash", width: "half", inFilterBox: true },
+      { key: "filterTypes", formName: "filter_types", label: "Filtrar por: Tipo", type: "typeFilter", width: "full", inFilterBox: true },
       { key: "limit", formName: "limit", label: "Cantidad máxima", type: "number", numberFallback: 6, width: "half", inFilterBox: true },
     ],
     defaults: {
@@ -217,7 +218,7 @@ export const SECTION_DEFINITIONS: Record<EditableSiteSectionType, SectionDefinit
         description: "",
         buttonLabel: "",
         buttonHref: "",
-        filterStyle: "",
+        filterTypes: "",
         filterTags: "",
         itemOrder: [],
         limit: 6,
@@ -454,6 +455,10 @@ export function parseSectionContentFromForm(formData: FormData, definition: Sect
       .split(",")
       .map((id) => Number(id.trim()))
       .filter((id) => Number.isInteger(id) && id > 0)
+  }
+
+  if (definition.type === "flashPreview") {
+    content.filterTypes = formData.getAll("filter_types").join(",")
   }
 
   return content

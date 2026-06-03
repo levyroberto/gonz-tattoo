@@ -1,12 +1,15 @@
-import type { FlashDesign } from "@/data/flash-designs"
+import type { TattooArtwork, SaleableArtwork, ArtworkStatus } from "@/data/artworks"
 import { footerSectionFallback } from "@/data/global-sections"
 import type { FooterSection } from "@/data/global-sections"
 import { getEnabledHomeSections, getHomeSectionFallback, getHomeSectionsFallback, getHomeSectionTemplate } from "@/data/home-sections"
 import type { HomeSection } from "@/data/home-sections"
 import { getPageSectionFallback, getPageSectionsFallback, type EditablePageKey, type PageSection } from "@/data/page-sections"
-import type { Tattoo } from "@/data/tattoos"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import type { Database, Json } from "@/lib/supabase/database.types"
+
+// Backward-compat aliases so page.tsx and other callers keep working
+type Tattoo = TattooArtwork
+type FlashDesign = SaleableArtwork
 
 export type AdminContentStats = {
   portfolioCount: number
@@ -31,60 +34,100 @@ export type SiteSettings = {
 }
 
 type SiteSectionRow = Database["public"]["Tables"]["site_sections"]["Row"]
-type PortfolioItemRow = {
+
+type ArtworkRow = {
   id: number
+  type: string
   title: string
-  style: string
   image_url: string
-  description: string | null
-  is_featured: boolean
-  is_active?: boolean
+  tags: string[]
+  is_active: boolean
   display_order: number
-  published_date?: string
-  tags?: string[]
+  // tattoo-only
+  description?: string | null
+  style?: string | null
+  published_date?: string | null
+  is_featured?: boolean | null
+  // saleable-only
+  price?: number | null
+  status?: string | null
+  dimensions?: string | null
+  material?: string | null
 }
 
-type FlashDesignRow = {
-  id: number
-  name: string
-  price: number
-  image_url: string
-  status: string
-  style: string
-  size: string
-  is_active?: boolean
-  display_order: number
-  tags?: string[]
-}
+function normalizeArtworkStatus(status: string | null | undefined): ArtworkStatus {
+  const s = (status ?? "").trim().toLowerCase()
 
-function normalizeFlashStatus(status: string): FlashDesign["status"] {
-  const normalizedStatus = status.trim().toLowerCase()
-
-  if (normalizedStatus === "reservado") {
-    return "Reservado"
-  }
-
-  if (normalizedStatus === "reclamado") {
-    return "Reclamado"
-  }
+  if (s === "reservado") return "Reservado"
+  if (s === "reclamado") return "Reclamado"
 
   return "Disponible"
 }
 
-async function countTable(tableName: "portfolio_items" | "flash_designs" | "contact_requests") {
+function mapArtworkRowToTattoo(row: ArtworkRow): Tattoo {
+  return {
+    id: row.id,
+    type: "tattoo",
+    title: row.title,
+    image: row.image_url,
+    tags: row.tags ?? [],
+    isActive: row.is_active,
+    isFeatured: row.is_featured ?? false,
+    displayOrder: row.display_order,
+    style: row.style ?? undefined,
+    description: row.description ?? undefined,
+    publishedDate: row.published_date ?? undefined,
+  }
+}
+
+function mapArtworkRowToSaleable(row: ArtworkRow): FlashDesign {
+  const type = row.type as FlashDesign["type"]
+
+  return {
+    id: row.id,
+    type,
+    title: row.title,
+    image: row.image_url,
+    tags: row.tags ?? [],
+    isActive: row.is_active,
+    displayOrder: row.display_order,
+    price: row.price ?? 0,
+    status: normalizeArtworkStatus(row.status),
+    style: row.style ?? undefined,
+    dimensions: row.dimensions ?? undefined,
+    material: row.material ?? undefined,
+  }
+}
+
+async function countArtworksByType(type: "tattoo" | "flash") {
   const supabase = createSupabaseServerClient()
 
-  if (!supabase) {
+  if (!supabase) return null
+
+  const { count, error } = await supabase
+    .from("artworks")
+    .select("*", { count: "exact", head: true })
+    .eq("type", type)
+
+  if (error) {
+    console.error(`Supabase count failed for artworks/${type}:`, error.message)
     return null
   }
 
-  const { count, error } = await supabase.from(tableName).select("*", {
-    count: "exact",
-    head: true,
-  })
+  return count ?? 0
+}
+
+async function countContactRequests() {
+  const supabase = createSupabaseServerClient()
+
+  if (!supabase) return null
+
+  const { count, error } = await supabase
+    .from("contact_requests")
+    .select("*", { count: "exact", head: true })
 
   if (error) {
-    console.error(`Supabase count failed for ${tableName}:`, error.message)
+    console.error("Supabase count failed for contact_requests:", error.message)
     return null
   }
 
@@ -115,9 +158,9 @@ export async function getTattooStyles(): Promise<TattooStyleOption[]> {
 
 export async function getAdminContentStats(): Promise<AdminContentStats> {
   const [portfolioCount, flashCount, contactRequestCount] = await Promise.all([
-    countTable("portfolio_items"),
-    countTable("flash_designs"),
-    countTable("contact_requests"),
+    countArtworksByType("tattoo"),
+    countArtworksByType("flash"),
+    countContactRequests(),
   ])
 
   const isConnected = portfolioCount !== null || flashCount !== null || contactRequestCount !== null
@@ -131,74 +174,40 @@ export async function getAdminContentStats(): Promise<AdminContentStats> {
 }
 
 export async function getPortfolioItems(): Promise<Tattoo[]> {
-  return getPortfolioItemsByVisibility(true)
+  const rows = await fetchArtworkRows("tattoo", true)
+
+  return (rows ?? []).map(mapArtworkRowToTattoo)
 }
 
 export async function getAdminPortfolioItems(): Promise<Tattoo[]> {
-  return getPortfolioItemsByVisibility(false)
+  const rows = await fetchArtworkRows("tattoo", false)
+
+  return (rows ?? []).map(mapArtworkRowToTattoo)
 }
 
-async function getPortfolioItemsByVisibility(onlyActive: boolean): Promise<Tattoo[]> {
+async function fetchArtworkRows(type: "tattoo" | "flash" | "sculpture" | "painting", onlyActive: boolean) {
   const supabase = createSupabaseServerClient()
 
-  if (!supabase) {
-    return []
-  }
+  if (!supabase) return null
 
   let query = supabase
-    .from("portfolio_items")
-    .select("id, title, style, image_url, description, is_featured, is_active, display_order, published_date, tags")
+    .from("artworks")
+    .select("id, type, title, image_url, tags, is_active, display_order, description, style, published_date, is_featured, price, status, dimensions, material")
+    .eq("type", type)
     .order("display_order", { ascending: true })
 
   if (onlyActive) {
     query = query.eq("is_active", true)
   }
 
-  let { data, error }: { data: PortfolioItemRow[] | null; error: { message: string } | null } = await query
+  const { data, error } = await query
 
   if (error) {
-    const fallback = await supabase
-      .from("portfolio_items")
-      .select("id, title, style, image_url, description, is_featured, is_active, display_order")
-      .order("display_order", { ascending: true })
-
-    if (!fallback.error) {
-      data = fallback.data ?? null
-      error = null
-    } else if (fallback.error.message.includes("is_active")) {
-      const legacyFallback = await supabase
-        .from("portfolio_items")
-        .select("id, title, style, image_url, description, is_featured, display_order")
-        .order("display_order", { ascending: true })
-
-      data = legacyFallback.data?.map((item) => ({ ...item, is_active: true })) ?? null
-      error = legacyFallback.error
-    } else {
-      error = fallback.error
-    }
+    console.error(`Supabase artworks fetch failed (${type}):`, error.message)
+    return null
   }
 
-  if (onlyActive) {
-    data = data?.filter((item) => item.is_active ?? true) ?? null
-  }
-
-  if (error) {
-    console.error("Supabase portfolio fetch failed:", error.message)
-    return []
-  }
-
-  return (data ?? []).map((item) => ({
-    id: item.id,
-    title: item.title,
-    style: item.style,
-    image: item.image_url,
-    description: item.description ?? undefined,
-    displayOrder: item.display_order,
-    isActive: item.is_active,
-    isFeatured: item.is_featured,
-    publishedDate: "published_date" in item ? item.published_date : undefined,
-    tags: "tags" in item ? item.tags ?? [] : [],
-  }))
+  return (data ?? []) as unknown as ArtworkRow[]
 }
 
 export async function getFeaturedPortfolioItems(): Promise<Tattoo[]> {
@@ -208,9 +217,10 @@ export async function getFeaturedPortfolioItems(): Promise<Tattoo[]> {
     return []
   }
 
-  let { data, error }: { data: PortfolioItemRow[] | null; error: { message: string } | null } = await supabase
-    .from("portfolio_items")
-    .select("id, title, style, image_url, description, is_featured, is_active, display_order, published_date, tags")
+  const { data, error } = await supabase
+    .from("artworks")
+    .select("id, type, title, image_url, tags, is_active, display_order, description, style, published_date, is_featured, price, status, dimensions, material")
+    .eq("type", "tattoo")
     .eq("is_featured", true)
     .eq("is_active", true)
     .order("published_date", { ascending: false })
@@ -218,126 +228,23 @@ export async function getFeaturedPortfolioItems(): Promise<Tattoo[]> {
     .limit(4)
 
   if (error) {
-    const fallback = await supabase
-      .from("portfolio_items")
-      .select("id, title, style, image_url, description, is_featured, is_active, display_order")
-      .eq("is_featured", true)
-      .eq("is_active", true)
-      .order("display_order", { ascending: true })
-      .limit(4)
-
-    if (!fallback.error) {
-      data = fallback.data ?? null
-      error = null
-    } else if (fallback.error.message.includes("is_active")) {
-      const legacyFallback = await supabase
-        .from("portfolio_items")
-        .select("id, title, style, image_url, description, is_featured, display_order")
-        .eq("is_featured", true)
-        .order("display_order", { ascending: true })
-        .limit(4)
-
-      data = legacyFallback.data?.map((item) => ({ ...item, is_active: true })) ?? null
-      error = legacyFallback.error
-    } else {
-      error = fallback.error
-    }
-  }
-
-  if (error) {
     console.error("Supabase featured portfolio fetch failed:", error.message)
     return []
   }
 
-  return (data ?? []).map((item) => ({
-    id: item.id,
-    title: item.title,
-    style: item.style,
-    image: item.image_url,
-    description: item.description ?? undefined,
-    displayOrder: item.display_order,
-    isActive: item.is_active,
-    isFeatured: item.is_featured,
-    publishedDate: "published_date" in item ? item.published_date : undefined,
-    tags: "tags" in item ? item.tags ?? [] : [],
-  }))
+  return (data ?? []).map((row) => mapArtworkRowToTattoo(row as unknown as ArtworkRow))
 }
 
 export async function getFlashDesigns(): Promise<FlashDesign[]> {
-  return getFlashDesignsByVisibility(true)
+  const rows = await fetchArtworkRows("flash", true)
+
+  return (rows ?? []).map(mapArtworkRowToSaleable)
 }
 
 export async function getAdminFlashDesigns(): Promise<FlashDesign[]> {
-  return getFlashDesignsByVisibility(false)
-}
+  const rows = await fetchArtworkRows("flash", false)
 
-async function getFlashDesignsByVisibility(onlyActive: boolean): Promise<FlashDesign[]> {
-  const supabase = createSupabaseServerClient()
-
-  if (!supabase) {
-    return []
-  }
-
-  let query = supabase
-    .from("flash_designs")
-    .select("id, name, price, image_url, status, style, size, is_active, display_order, tags")
-    .order("display_order", { ascending: true })
-
-  if (onlyActive) {
-    query = query.eq("is_active", true)
-  }
-
-  let { data, error }: { data: FlashDesignRow[] | null; error: { message: string } | null } = await query
-
-  if (error) {
-    let fallbackQuery = supabase
-      .from("flash_designs")
-      .select("id, name, price, image_url, status, style, size, is_active, display_order")
-      .order("display_order", { ascending: true })
-
-    if (onlyActive) {
-      fallbackQuery = fallbackQuery.eq("is_active", true)
-    }
-
-    const fallback = await fallbackQuery
-
-    if (!fallback.error) {
-      data = fallback.data ?? null
-      error = null
-    } else if (fallback.error.message.includes("is_active")) {
-      const legacyFallback = await supabase
-        .from("flash_designs")
-        .select("id, name, price, image_url, status, style, size, display_order")
-        .order("display_order", { ascending: true })
-
-      data = legacyFallback.data?.map((design) => ({ ...design, is_active: true })) ?? null
-      error = legacyFallback.error
-    } else {
-      error = fallback.error
-    }
-  }
-
-  if (onlyActive) {
-    data = data?.filter((design) => design.is_active ?? true) ?? null
-  }
-
-  if (error) {
-    console.error("Supabase flash fetch failed:", error.message)
-    return []
-  }
-
-  return (data ?? []).map((design) => ({
-    id: design.id,
-    name: design.name,
-    price: design.price,
-    image: design.image_url,
-    status: normalizeFlashStatus(design.status),
-    style: design.style,
-    size: design.size,
-    displayOrder: design.display_order,
-    isActive: design.is_active,
-    tags: "tags" in design ? design.tags ?? [] : [],
-  }))
+  return (rows ?? []).map(mapArtworkRowToSaleable)
 }
 
 export async function getFeaturedFlashDesigns(): Promise<FlashDesign[]> {
@@ -346,11 +253,56 @@ export async function getFeaturedFlashDesigns(): Promise<FlashDesign[]> {
   return designs.slice(0, 6)
 }
 
+export async function getSaleableArtworks(types?: Array<"flash" | "sculpture" | "painting">): Promise<FlashDesign[]> {
+  const supabase = createSupabaseServerClient()
+
+  if (!supabase) {
+    return []
+  }
+
+  const targetTypes = types ?? ["flash", "sculpture", "painting"]
+  const { data, error } = await supabase
+    .from("artworks")
+    .select("id, type, title, image_url, tags, is_active, display_order, price, status, style, dimensions, material")
+    .in("type", targetTypes)
+    .eq("is_active", true)
+    .order("display_order", { ascending: true })
+
+  if (error) {
+    console.error("Supabase saleable artworks fetch failed:", error.message)
+    return []
+  }
+
+  return (data ?? []).map((row) => mapArtworkRowToSaleable(row as unknown as ArtworkRow))
+}
+
+export async function getAdminSaleableArtworks(types?: Array<"flash" | "sculpture" | "painting">): Promise<FlashDesign[]> {
+  const supabase = createSupabaseServerClient()
+
+  if (!supabase) {
+    return []
+  }
+
+  const targetTypes = types ?? ["flash", "sculpture", "painting"]
+  const { data, error } = await supabase
+    .from("artworks")
+    .select("id, type, title, image_url, tags, is_active, display_order, price, status, style, dimensions, material")
+    .in("type", targetTypes)
+    .order("display_order", { ascending: true })
+
+  if (error) {
+    console.error("Supabase admin saleable artworks fetch failed:", error.message)
+    return []
+  }
+
+  return (data ?? []).map((row) => mapArtworkRowToSaleable(row as unknown as ArtworkRow))
+}
+
 export async function getAdminDashboardContent() {
   const [stats, portfolioItems, flashItems, tattooStyles, settings, homeSections, pageSections, footer] = await Promise.all([
     getAdminContentStats(),
     getAdminPortfolioItems(),
-    getAdminFlashDesigns(),
+    getAdminSaleableArtworks(),
     getTattooStyles(),
     getSiteSettings(),
     getAdminHomeSections(),

@@ -4,7 +4,8 @@ import { motion } from "framer-motion"
 import Image from "next/image"
 
 import { WhatsAppButton, PrimaryButton } from "@/components/ui/buttons"
-import { flashStatusBadgeStyles, type FlashDesign } from "@/data/flash-designs"
+import { artworkStatusBadgeStyles as flashStatusBadgeStyles } from "@/data/artworks"
+import type { SaleableArtwork as FlashDesign } from "@/data/artworks"
 import { formatPrice } from "@/lib/format-price"
 
 interface FlashDesignCardProps {
@@ -35,7 +36,7 @@ const availableCtaClass =
 
 function buildWhatsappUrl(baseUrl: string, design: FlashDesign) {
   const separator = baseUrl.includes("?") ? "&" : "?"
-  const message = `Hola Gonzalo, quiero consultar por el diseño "${design.name}" ¿Está disponible?`
+  const message = `Hola Gonzalo, quiero consultar por el diseño "${design.title}" ¿Está disponible?`
 
   return `${baseUrl}${separator}text=${encodeURIComponent(message)}`
 }
@@ -59,11 +60,11 @@ export function FlashDesignCard({ design, index, onOpen, whatsappUrl }: FlashDes
 
       <button
         type="button"
-        aria-label={`Ampliar ${design.name}`}
+        aria-label={`Ampliar ${design.title}`}
         onClick={() => onOpen?.(design)}
         className="relative block aspect-square w-full overflow-hidden bg-muted/20 text-left"
       >
-        <Image src={design.image} alt={design.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
+        <Image src={design.image} alt={design.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
         <span className={`absolute bottom-4 right-4 border px-3 py-1 text-xs font-sans tracking-widest uppercase ${flashStatusBadgeStyles[design.status]}`}>
           {design.status}
         </span>
@@ -71,15 +72,17 @@ export function FlashDesignCard({ design, index, onOpen, whatsappUrl }: FlashDes
 
       <div className="space-y-5 p-5 md:p-6">
         <div>
-          <h2 className="text-3xl font-sans tracking-wider text-foreground">{design.name}</h2>
+          <h2 className="text-3xl font-sans tracking-wider text-foreground">{design.title}</h2>
           <p className="mt-1 text-secondary font-serif italic">{design.style}</p>
         </div>
 
         <dl className="grid grid-cols-1 gap-3 border-y border-border py-4 text-sm">
-          <div>
-            <dt className="font-sans tracking-widest text-muted-foreground uppercase">Tamaño</dt>
-            <dd className="mt-1 font-serif text-foreground">{design.size}</dd>
-          </div>
+          {design.dimensions ? (
+            <div>
+              <dt className="font-sans tracking-widest text-muted-foreground uppercase">Dimensiones</dt>
+              <dd className="mt-1 font-serif text-foreground">{design.dimensions}</dd>
+            </div>
+          ) : null}
         </dl>
 
         <div className="flex items-center justify-between gap-4">

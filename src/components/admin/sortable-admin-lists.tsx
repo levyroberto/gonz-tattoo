@@ -22,12 +22,12 @@ import { ChevronDown, GripVertical } from "lucide-react"
 import { type Dispatch, type ReactNode, type SetStateAction, useState, useTransition } from "react"
 
 import {
-  deleteFlashDesign,
-  deletePortfolioItem,
-  reorderFlashDesigns,
-  reorderPortfolioItems,
-  updateFlashDesign,
-  updatePortfolioItem,
+  deleteSaleableArtwork,
+  deleteTattoo,
+  reorderSaleableArtworks,
+  reorderTattoos,
+  updateSaleableArtwork,
+  updateTattoo,
 } from "@/app/admin/actions"
 import { AdminActionForm, FieldError, FormMessage, hasImageValue, type RequiredFieldRule } from "@/components/admin/admin-action-form"
 import { ActiveToggle } from "@/components/admin/active-toggle"
@@ -36,8 +36,7 @@ import { LabeledField } from "@/components/admin/labeled-field"
 import { TagInputField } from "@/components/admin/tag-input-field"
 import { TattooStyleSelect } from "@/components/admin/tattoo-style-select"
 import { Button } from "@/components/ui/button"
-import type { FlashDesign } from "@/data/flash-designs"
-import type { Tattoo } from "@/data/tattoos"
+import type { SaleableArtwork, TattooArtwork } from "@/data/artworks"
 import { DeleteButton } from "./delete-button"
 import { errorIndentClass, fieldClass, tallFieldClass } from "@/components/admin/admin-field-styles"
 
@@ -154,8 +153,8 @@ function TagBadges({ tags }: { tags?: string[] }) {
 }
 
 type SortablePortfolioListProps = {
-  items: Tattoo[]
-  onItemsChange: Dispatch<SetStateAction<Tattoo[]>>
+  items: TattooArtwork[]
+  onItemsChange: Dispatch<SetStateAction<TattooArtwork[]>>
   tattooStyles: string[]
   statusFilter?: AdminStatusFilter
 }
@@ -177,11 +176,11 @@ export function SortablePortfolioList({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  function persistOrder(nextItems: Tattoo[]) {
+  function persistOrder(nextItems: TattooArtwork[]) {
     setMessage(null)
     setIsError(false)
     startTransition(async () => {
-      const result = await reorderPortfolioItems(nextItems.map((item) => item.id))
+      const result = await reorderTattoos(nextItems.map((item) => item.id))
 
       if (!result.ok) {
         setIsError(true)
@@ -193,15 +192,15 @@ export function SortablePortfolioList({
     })
   }
 
-  function isPortfolioItem(item: unknown): item is Tattoo {
-    return Boolean(item && typeof item === "object" && "id" in item && "title" in item)
+  function isTattooItem(item: unknown): item is TattooArtwork {
+    return Boolean(item && typeof item === "object" && "type" in item && (item as { type: unknown }).type === "tattoo")
   }
 
   function updateItemFromForm(formData: FormData, result?: { item?: unknown } | void) {
     const id = Number(formData.get("id"))
     const savedItem = result?.item
 
-    if (isPortfolioItem(savedItem)) {
+    if (isTattooItem(savedItem)) {
       setOrderedItems((currentItems) => currentItems.map((item) => (item.id === id ? savedItem : item)))
       return
     }
@@ -330,7 +329,7 @@ export function SortablePortfolioList({
             </div>
             {openItemId === item.id && <div className="grid gap-3 border-t border-border p-3">
               <AdminActionForm
-                action={updatePortfolioItem}
+                action={updateTattoo}
                 className="grid gap-3"
                 onSuccess={updateItemFromForm}
                 onDirtyChange={(dirty) => setDirtyItemIds((prev) => { const next = new Set(prev); dirty ? next.add(item.id) : next.delete(item.id); return next })}
@@ -372,7 +371,7 @@ export function SortablePortfolioList({
                   <DeleteButton
                     itemId={item.id}
                     itemName={item.title}
-                    deleteAction={deletePortfolioItem}
+                    deleteAction={deleteTattoo}
                     onSuccess={removeItemFromForm}
                   />
                   <div className="flex items-center gap-2">
@@ -400,17 +399,17 @@ export function SortablePortfolioList({
   )
 }
 
-type SortableFlashListProps = {
-  items: FlashDesign[]
-  onItemsChange: Dispatch<SetStateAction<FlashDesign[]>>
+type SortableDesignsListProps = {
+  items: SaleableArtwork[]
+  onItemsChange: Dispatch<SetStateAction<SaleableArtwork[]>>
   statusFilter?: AdminStatusFilter
 }
 
-export function SortableFlashList({
+export function SortableDesignsList({
   items: orderedItems,
   onItemsChange: setOrderedItems,
   statusFilter = "all",
-}: SortableFlashListProps) {
+}: SortableDesignsListProps) {
   const [openItemId, setOpenItemId] = useState<number | null>(null)
   const [dirtyItemIds, setDirtyItemIds] = useState<Set<number>>(new Set())
   const [message, setMessage] = useState<string | null>(null)
@@ -422,11 +421,11 @@ export function SortableFlashList({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  function persistOrder(nextItems: FlashDesign[]) {
+  function persistOrder(nextItems: SaleableArtwork[]) {
     setMessage(null)
     setIsError(false)
     startTransition(async () => {
-      const result = await reorderFlashDesigns(nextItems.map((item) => item.id))
+      const result = await reorderSaleableArtworks(nextItems.map((item) => item.id))
 
       if (!result.ok) {
         setIsError(true)
@@ -438,15 +437,15 @@ export function SortableFlashList({
     })
   }
 
-  function isFlashItem(item: unknown): item is FlashDesign {
-    return Boolean(item && typeof item === "object" && "id" in item && "name" in item)
+  function isDesignItem(item: unknown): item is SaleableArtwork {
+    return Boolean(item && typeof item === "object" && "id" in item && "price" in item)
   }
 
   function updateItemFromForm(formData: FormData, result?: { item?: unknown } | void) {
     const id = Number(formData.get("id"))
     const savedItem = result?.item
 
-    if (isFlashItem(savedItem)) {
+    if (isDesignItem(savedItem)) {
       setOrderedItems((currentItems) => currentItems.map((item) => (item.id === id ? savedItem : item)))
       return
     }
@@ -456,12 +455,12 @@ export function SortableFlashList({
         item.id === id
           ? {
               ...item,
-              name: String(formData.get("name") ?? item.name),
+              title: String(formData.get("title") ?? item.title),
               price: Number(formData.get("price") ?? item.price),
               style: String(formData.get("style") ?? item.style),
               image: String(formData.get("image_url") || item.image),
-              size: String(formData.get("size") ?? item.size),
-              status: String(formData.get("status") ?? item.status) as FlashDesign["status"],
+              dimensions: String(formData.get("dimensions") ?? item.dimensions),
+              status: String(formData.get("status") ?? item.status) as SaleableArtwork["status"],
               isActive: formData.get("is_active") === "on",
               tags: String(formData.get("tags") ?? "").split(",").map((tag) => tag.trim()).filter(Boolean),
             }
@@ -526,7 +525,7 @@ export function SortableFlashList({
             <div className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left">
               <div className="flex min-w-0 items-center gap-3">
                 <button
-                  aria-label={`Mover ${item.name}`}
+                  aria-label={`Mover ${item.title}`}
                   className="shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
                   {...attributes}
                   {...listeners}
@@ -540,7 +539,7 @@ export function SortableFlashList({
                 >
                   <GripVertical className="size-4" aria-hidden="true" />
                 </button>
-                <AdminItemThumbnail src={item.image} alt={item.name} />
+                <AdminItemThumbnail src={item.image} alt={item.title} />
                 <button
                   type="button"
                   className="min-w-0 cursor-pointer text-left"
@@ -548,7 +547,7 @@ export function SortableFlashList({
                   onClick={() => setOpenItemId(openItemId === item.id ? null : item.id)}
                 >
                   <div className="flex items-center gap-2">
-                      <p className="truncate text-lg tracking-wide transition-colors hover:text-primary">{item.name}</p>
+                      <p className="truncate text-lg tracking-wide transition-colors hover:text-primary">{item.title}</p>
                       <p className="text-sm text-muted-foreground">
                         {item.status}
                       </p>
@@ -567,7 +566,7 @@ export function SortableFlashList({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  aria-label={`Editar ${item.name}`}
+                  aria-label={`Editar ${item.title}`}
                   aria-expanded={openItemId === item.id}
                   onClick={() => setOpenItemId(openItemId === item.id ? null : item.id)}
                 >
@@ -580,7 +579,7 @@ export function SortableFlashList({
             </div>
             {openItemId === item.id && <div className="grid gap-3 border-t border-border p-3">
               <AdminActionForm
-                action={updateFlashDesign}
+                action={updateSaleableArtwork}
                 className="grid gap-3"
                 onSuccess={updateItemFromForm}
                 onDirtyChange={(dirty) => setDirtyItemIds((prev) => { const next = new Set(prev); dirty ? next.add(item.id) : next.delete(item.id); return next })}
@@ -590,10 +589,10 @@ export function SortableFlashList({
                 <input name="id" type="hidden" value={item.id} />
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div className="grid gap-2">
-                    <LabeledField label="Nombre" compact>
-                      <input className={fieldClass} name="name" defaultValue={item.name} />
+                    <LabeledField label="Título" compact>
+                      <input className={fieldClass} name="title" defaultValue={item.title} />
                     </LabeledField>
-                    <FieldError name="name" className={errorIndentClass} />
+                    <FieldError name="title" className={errorIndentClass} />
                     <LabeledField label="Precio" compact>
                       <input className={fieldClass} name="price" type="number" min="0" step="1" inputMode="numeric" defaultValue={item.price} />
                     </LabeledField>
@@ -609,8 +608,8 @@ export function SortableFlashList({
                     <LabeledField label="Tags" alignTop compact>
                       <TagInputField className={fieldClass} defaultValue={(item.tags ?? []).join(", ")} placeholder="Agregar tag" />
                     </LabeledField>
-                    <LabeledField label="Tamaño" compact>
-                      <input className={fieldClass} name="size" defaultValue={item.size} />
+                    <LabeledField label="Dimensiones" compact>
+                      <input className={fieldClass} name="dimensions" defaultValue={item.dimensions ?? ""} />
                     </LabeledField>
                     <LabeledField label="Estado" compact>
                       <select className={fieldClass} name="status" defaultValue={item.status}>
@@ -627,8 +626,8 @@ export function SortableFlashList({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <DeleteButton
                     itemId={item.id}
-                    itemName={item.name}
-                    deleteAction={deleteFlashDesign}
+                    itemName={item.title}
+                    deleteAction={deleteSaleableArtwork}
                     onSuccess={removeItemFromForm}
                   />
                   <div className="flex items-center gap-2">
@@ -652,6 +651,7 @@ export function SortableFlashList({
       {statusFilter !== "all" && visibleItems.length === 0 && (
         <p className="text-sm text-muted-foreground">No hay diseños {statusFilter === "active" ? "activos" : "inactivos"}.</p>
       )}
+
     </div>
   )
 }

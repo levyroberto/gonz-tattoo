@@ -9,6 +9,7 @@ import type { Tattoo } from "../../data/tattoos"
 function makeTattoo(overrides: Partial<Tattoo> = {}): Tattoo {
   return {
     id: 1,
+    type: "tattoo",
     title: "Test tattoo",
     style: "Old school",
     image: "/img/test.jpg",
@@ -24,12 +25,13 @@ function makeTattoo(overrides: Partial<Tattoo> = {}): Tattoo {
 function makeFlash(overrides: Partial<FlashDesign> = {}): FlashDesign {
   return {
     id: 1,
-    name: "Test flash",
+    type: "flash",
+    title: "Test flash",
     price: 10000,
     image: "/img/flash.jpg",
     status: "Disponible",
     style: "Tradicional",
-    size: "10x10",
+    dimensions: "10x10",
     displayOrder: 1,
     isActive: true,
     tags: [],
