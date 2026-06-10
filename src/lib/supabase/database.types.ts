@@ -3,63 +3,6 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
-      artworks: {
-        Row: {
-          id: number
-          type: "tattoo" | "flash" | "sculpture" | "painting"
-          title: string
-          image_url: string
-          tags: string[]
-          is_active: boolean
-          display_order: number
-          created_at: string
-          description: string | null
-          style: string | null
-          published_date: string | null
-          is_featured: boolean | null
-          price: number | null
-          status: "Disponible" | "Reservado" | "Reclamado" | null
-          dimensions: string | null
-          material: string | null
-        }
-        Insert: {
-          id?: number
-          type: "tattoo" | "flash" | "sculpture" | "painting"
-          title: string
-          image_url: string
-          tags?: string[]
-          is_active?: boolean
-          display_order?: number
-          created_at?: string
-          description?: string | null
-          style?: string | null
-          published_date?: string | null
-          is_featured?: boolean | null
-          price?: number | null
-          status?: "Disponible" | "Reservado" | "Reclamado" | null
-          dimensions?: string | null
-          material?: string | null
-        }
-        Update: {
-          id?: number
-          type?: "tattoo" | "flash" | "sculpture" | "painting"
-          title?: string
-          image_url?: string
-          tags?: string[]
-          is_active?: boolean
-          display_order?: number
-          created_at?: string
-          description?: string | null
-          style?: string | null
-          published_date?: string | null
-          is_featured?: boolean | null
-          price?: number | null
-          status?: "Disponible" | "Reservado" | "Reclamado" | null
-          dimensions?: string | null
-          material?: string | null
-        }
-        Relationships: []
-      }
       portfolio_items: {
         Row: {
           id: number
@@ -287,10 +230,6 @@ export type Database = {
     Functions: {
       shift_portfolio_display_order: {
         Args: Record<string, never>
-        Returns: undefined
-      }
-      shift_artworks_display_order: {
-        Args: { artwork_type: string }
         Returns: undefined
       }
     }

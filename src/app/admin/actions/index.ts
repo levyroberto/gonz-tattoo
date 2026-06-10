@@ -2,15 +2,17 @@
 export { loginAdmin, logoutAdmin } from "@/app/admin/actions/auth"
 export { updateSiteSettings } from "@/app/admin/actions/settings"
 export {
-  createTattoo,
-  updateTattoo,
-  deleteTattoo,
-  reorderTattoos,
-  createSaleableArtwork,
-  updateSaleableArtwork,
-  deleteSaleableArtwork,
-  reorderSaleableArtworks,
-} from "@/app/admin/actions/artworks"
+  createPortfolioItem,
+  updatePortfolioItem,
+  deletePortfolioItem,
+  reorderPortfolioItems,
+} from "@/app/admin/actions/portfolio"
+export {
+  createFlashDesign,
+  updateFlashDesign,
+  deleteFlashDesign,
+  reorderFlashDesigns,
+} from "@/app/admin/actions/flash"
 export {
   updateHomeSectionEnabled,
   reorderHomeSections,

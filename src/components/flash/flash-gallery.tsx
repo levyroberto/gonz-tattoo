@@ -5,20 +5,15 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useState } from "react"
 
 import { TattooImageLightbox } from "@/components/ui/tattoo-image-lightbox"
-import type { SaleableArtwork as FlashDesign } from "@/data/artworks"
+import type { FlashDesign } from "@/data/flash-designs"
 import type { FlashPageSectionContent, FlashPageSectionLayout, FlashPageSectionStyle } from "@/data/page-sections"
 import { useLightboxOpenGuard } from "@/hooks/use-lightbox-open-guard"
 
 import { FlashDesignCard } from "./flash-design-card"
 
-const SALEABLE_TYPES = ["flash", "sculpture", "painting"] as const
-type SaleableType = (typeof SALEABLE_TYPES)[number]
+const statuses = ["Todo", "Disponible", "Reservado", "Reclamado"] as const
 
-const TYPE_LABELS: Record<SaleableType, string> = {
-  flash: "Diseño flash",
-  sculpture: "Escultura",
-  painting: "Pintura",
-}
+type FlashStatusFilter = (typeof statuses)[number]
 
 type FlashGalleryProps = {
   content: FlashPageSectionContent
@@ -36,50 +31,49 @@ const gridClassNames: Record<`${FlashPageSectionLayout["columnsTablet"]}-${Flash
   "2-3": "md:grid-cols-2 xl:grid-cols-3",
 }
 
-function parseSelectedType(param: string | null): SaleableType | null {
-  if (!param) return null
-  return SALEABLE_TYPES.includes(param as SaleableType) ? (param as SaleableType) : null
-}
-
 export function FlashGallery({ content, designs, layout, style, whatsappUrl }: FlashGalleryProps) {
   const [selectedDesign, setSelectedDesign] = useState<FlashDesign | null>(null)
   const canOpenLightbox = useLightboxOpenGuard()
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
-
   const requestedDesignId = searchParams.get("id")
-  const selectedType = parseSelectedType(searchParams.get("tipo"))
-  const availableTypes = SALEABLE_TYPES.filter((t) => designs.some((d) => d.type === t))
-
+  const requestedStatus = searchParams.get("estado") ?? "Todo"
+  const selectedStatus: FlashStatusFilter = statuses.includes(requestedStatus as FlashStatusFilter)
+    ? (requestedStatus as FlashStatusFilter)
+    : "Todo"
   const selectedDesignById = requestedDesignId
-    ? designs.find((d) => String(d.id) === requestedDesignId) ?? null
+    ? designs.find((design) => String(design.id) === requestedDesignId) ?? null
     : null
-
   const filteredDesigns = requestedDesignId
-    ? selectedDesignById ? [selectedDesignById] : []
-    : selectedType === null
+    ? selectedDesignById
+      ? [selectedDesignById]
+      : []
+    : selectedStatus === "Todo"
       ? designs
-      : designs.filter((d) => d.type === selectedType)
-
+      : designs.filter((design) => design.status === selectedStatus)
   const gridColumns = gridClassNames[`${layout.columnsTablet}-${layout.columnsDesktop}`]
 
-  function selectType(type: SaleableType) {
-    const params = new URLSearchParams(searchParams)
-    params.delete("id")
+  function selectStatus(status: FlashStatusFilter) {
+    const nextParams = new URLSearchParams(searchParams)
 
-    if (selectedType === type) {
-      params.delete("tipo")
+    nextParams.delete("id")
+
+    if (status === "Todo") {
+      nextParams.delete("estado")
     } else {
-      params.set("tipo", type)
+      nextParams.set("estado", status)
     }
 
-    const query = params.toString()
+    const query = nextParams.toString()
     router.push(query ? `${pathname}?${query}` : pathname, { scroll: false })
   }
 
   function openDesign(design: FlashDesign) {
-    if (!canOpenLightbox()) return
+    if (!canOpenLightbox()) {
+      return
+    }
+
     setSelectedDesign(design)
   }
 
@@ -105,31 +99,26 @@ export function FlashGallery({ content, designs, layout, style, whatsappUrl }: F
           )}
         </motion.div>
 
-        {availableTypes.length > 1 && (
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            {availableTypes.map((type, index) => {
-              const isSelected = selectedType === type
-              return (
-                <motion.button
-                  key={type}
-                  type="button"
-                  onClick={() => selectType(type)}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.1 + index * 0.05 }}
-                  aria-pressed={isSelected}
-                  className={`border px-4 py-2 font-sans text-sm tracking-widest uppercase transition-colors ${
-                    isSelected
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border text-muted-foreground hover:border-secondary hover:text-secondary"
-                  }`}
-                >
-                  {TYPE_LABELS[type]}
-                </motion.button>
-              )
-            })}
-          </div>
-        )}
+        <div className="mt-10 flex flex-wrap justify-center gap-3">
+          {statuses.map((status, index) => (
+            <motion.button
+              key={status}
+              type="button"
+              onClick={() => selectStatus(status)}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 + index * 0.05 }}
+              aria-pressed={selectedStatus === status}
+              className={`border px-4 py-2 font-sans text-sm tracking-widest uppercase transition-colors ${
+                selectedStatus === status
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border text-muted-foreground hover:border-secondary hover:text-secondary"
+              }`}
+            >
+              {status}
+            </motion.button>
+          ))}
+        </div>
 
         <div className={`mt-14 grid grid-cols-1 gap-6 ${gridColumns}`}>
           {filteredDesigns.map((design, index) => (
@@ -149,7 +138,7 @@ export function FlashGallery({ content, designs, layout, style, whatsappUrl }: F
         )}
       </div>
       <TattooImageLightbox
-        tattoo={selectedDesign ? { image: selectedDesign.image, title: selectedDesign.title } : null}
+        tattoo={selectedDesign ? { image: selectedDesign.image, title: selectedDesign.name } : null}
         onClose={() => setSelectedDesign(null)}
       />
     </section>

@@ -4,7 +4,7 @@ import { Suspense } from "react"
 import { FlashGallery } from "@/components/flash/flash-gallery"
 import { SiteFooter } from "@/components/layout/site-footer"
 import { SiteHeader } from "@/components/layout/site-header"
-import { getGlobalFooterSection, getPageSection, getSaleableArtworks, getSiteSettings } from "@/lib/supabase/content"
+import { getFlashDesigns, getGlobalFooterSection, getPageSection, getSiteSettings } from "@/lib/supabase/content"
 
 export const dynamic = "force-dynamic"
 
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function DesignsPage() {
   const [designs, settings, footer, section] = await Promise.all([
-    getSaleableArtworks(),
+    getFlashDesigns(),
     getSiteSettings(),
     getGlobalFooterSection(),
     getPageSection("flash"),
@@ -26,7 +26,7 @@ export default async function DesignsPage() {
       <SiteHeader />
       <Suspense fallback={null}>
         {section.type === "flashPage" && (
-          <FlashGallery content={section.content} designs={designs} layout={section.layout} style={section.style} whatsappUrl={settings.whatsappUrl} />
+          <FlashGallery designs={designs} whatsappUrl={settings.whatsappUrl} content={section.content} layout={section.layout} style={section.style} />
         )}
       </Suspense>
       <SiteFooter footer={footer} settings={settings} />

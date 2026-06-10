@@ -80,6 +80,7 @@ export function SiteFooter({ footer, settings }: SiteFooterProps) {
             <Link
               key={link.href}
               href={link.href}
+              prefetch={false}
               className="text-muted-foreground hover:text-foreground font-sans tracking-[3px] text-xs uppercase transition-colors"
             >
               {link.label}
